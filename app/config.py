@@ -38,7 +38,7 @@ class Settings(BaseSettings):
 
     # Background Tasks
     ARTICLE_FETCH_INTERVAL_MINUTES: int = 60  # 1시간마다 기사 수집
-    INCOME_GENERATION_INTERVAL_SECONDS: int = 1  # 1초마다 수익금 지급
+    INCOME_GENERATION_INTERVAL_SECONDS: int = 10  # 10초마다 수익금 지급
     PRICE_UPDATE_INTERVAL_MINUTES: int = 10  # 10분마다 시세 업데이트
     OCEAN_DATA_FETCH_INTERVAL_MINUTES: int = 30  # 30분마다 해양 관측소 데이터 수집
 
@@ -47,9 +47,9 @@ class Settings(BaseSettings):
     BUILDING_COST: int = 500000  # 빌딩 구매 비용 (50만 크레딧)
 
     # Building Income Rates (크레딧/초)
-    # 가게: 10초에 10만의 3% = 3,000 크레딧 → 초당 300 크레딧
+    # 가게: 10초에 10만의 4% = 4,000 크레딧 → 초당 400 크레딧
     # 빌딩: 10초에 50만의 4% = 20,000 크레딧 → 초당 2,000 크레딧
-    STORE_INCOME_RATE: int = 300  # 음식점 수익률 (크레딧/초)
+    STORE_INCOME_RATE: int = 400  # 음식점 수익률 (크레딧/초)
     BUILDING_INCOME_RATE: int = 2000  # 빌딩 수익률 (크레딧/초)
 
     # Garbage Collection Reward

@@ -49,6 +49,10 @@ class OceanManagementService:
 
         result = []
         for ownership in ownerships:
+            # 평수가 0인 해양은 제외
+            if ownership.square_meters <= 0:
+                continue
+
             ocean = self.repository.find_ocean_by_id(ownership.ocean_id)
             if not ocean:
                 continue

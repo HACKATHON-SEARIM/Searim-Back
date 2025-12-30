@@ -148,6 +148,7 @@ class OpenAIClient:
             다음 중 하나로만 답변해주세요:
             - "YES": 이미지가 미션 완료를 명확하게 증명하는 경우
             - "NO": 이미지가 미션과 무관하거나 불명확한 경우
+            너무 빡빡하게 검증하기 보다는 정당히 비슷하다면 YES를 리턴하고 비슷하지 않다면 NO를 리턴해주세요
             """
 
             response = await self.client.chat.completions.create(

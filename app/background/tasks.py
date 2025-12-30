@@ -252,7 +252,7 @@ async def generate_building_income():
     """
     빌딩/음식점에서 발생하는 수익금을 자동으로 지급합니다.
 
-    1초마다 실행되며, 각 건물의 수익률에 따라 소유자에게 크레딧을 지급합니다.
+    10초마다 실행되며, 각 건물의 수익률에 따라 소유자에게 크레딧을 지급합니다.
     """
     db: Session = SessionLocal()
 
@@ -260,9 +260,19 @@ async def generate_building_income():
         # 모든 건물 조회
         buildings = db.query(Building).all()
 
+        if not buildings:
+            return  # 건물이 없으면 종료
+
+        now = datetime.utcnow()
+        total_income_distributed = 0
+
         for building in buildings:
+            # 마지막 수익금 지급 시간이 없으면 현재 시간으로 초기화
+            if building.last_income_generated_at is None:
+                building.last_income_generated_at = now
+                continue
+
             # 마지막 수익금 지급 이후 경과 시간 계산 (초 단위)
-            now = datetime.utcnow()
             elapsed_seconds = (now - building.last_income_generated_at).total_seconds()
 
             if elapsed_seconds >= 1:  # 1초 이상 경과
@@ -273,14 +283,21 @@ async def generate_building_income():
                 owner = db.query(User).filter(User.user_id == building.user_id).first()
                 if owner:
                     owner.credits += income
+                    total_income_distributed += income
+                    print(f"💰 빌딩 수익금 지급: {building.user_id}에게 {income} 크레딧 (빌딩 ID: {building.id})")
 
                 # 마지막 수익금 지급 시간 업데이트
                 building.last_income_generated_at = now
 
         db.commit()
 
+        if total_income_distributed > 0:
+            print(f"✅ 총 {total_income_distributed} 크레딧 지급 완료 ({len(buildings)}개 건물)")
+
     except Exception as e:
-        print(f"수익금 지급 오류: {e}")
+        print(f"❌ 수익금 지급 오류: {e}")
+        import traceback
+        traceback.print_exc()
         db.rollback()
     finally:
         db.close()
