@@ -162,6 +162,43 @@ class AuctionResponse(BaseModel):
         }
 
 
+class OceanWithAuctionResponse(BaseModel):
+    """경매 중인 해양 정보 응답 DTO"""
+
+    ocean_id: int = Field(..., description="해양 ID")
+    ocean_name: str = Field(..., description="해양 이름")
+    lat: float = Field(..., description="위도")
+    lon: float = Field(..., description="경도")
+    region: str = Field(..., description="지역")
+    detail: str = Field(..., description="상세 지역")
+    current_price: int = Field(..., description="현재 가격 (1평당)")
+    available_square_meters: int = Field(..., description="구매 가능한 평수")
+    recent_prices: List[int] = Field(
+        default_factory=list,
+        description="최근 시세 값 10개 (최신순)"
+    )
+    auction_id: int = Field(..., description="경매 ID")
+    auction_square_meters: int = Field(..., description="경매 평수")
+
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "ocean_id": 1,
+                "ocean_name": "부산 앞바다",
+                "lat": 35.1595,
+                "lon": 129.1600,
+                "region": "부산광역시",
+                "detail": "해운대구",
+                "current_price": 1000,
+                "available_square_meters": 5000,
+                "recent_prices": [1200, 1100, 1000],
+                "auction_id": 1,
+                "auction_square_meters": 30
+            }
+        }
+
+
 class BidResponse(BaseModel):
     """입찰 정보 응답 DTO"""
 

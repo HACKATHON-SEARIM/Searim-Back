@@ -9,6 +9,7 @@ from app.domain.ocean_trade.presentation.dto import (
     RegisterAuctionRequest,
     BidOnAuctionRequest,
     OceanResponse,
+    OceanWithAuctionResponse,
     OwnershipResponse,
     SaleResponse,
     AuctionResponse,
@@ -68,7 +69,7 @@ def get_purchasable_oceans(
 
 @router.get(
     "/auction",
-    response_model=List[OceanResponse],
+    response_model=List[OceanWithAuctionResponse],
     status_code=status.HTTP_200_OK,
     summary="경매 가능한 해양 목록 조회",
     description="경매 중인 해양 목록을 조회합니다. 지역(region) 및 세부 지역(detail)으로 필터링할 수 있습니다."
@@ -78,7 +79,7 @@ def get_auctionable_oceans(
     detail: Optional[str] = Query(None, description="세부 지역 필터 (시/군/구)"),
     db: Session = Depends(get_db),
     current_username: str = Depends(get_current_username)
-) -> List[OceanResponse]:
+) -> List[OceanWithAuctionResponse]:
     """
     경매 가능한 해양 목록 조회 엔드포인트
 
@@ -89,14 +90,14 @@ def get_auctionable_oceans(
         current_username: 현재 로그인한 사용자 이름 (JWT에서 추출)
 
     Returns:
-        List[OceanResponse]: 경매 중인 해양 목록
+        List[OceanWithAuctionResponse]: 경매 중인 해양 목록 (경매 정보 포함)
     """
     service = OceanTradeService(db)
-    oceans = service.get_auctionable_oceans(region=region, detail=detail)
-    ocean_ids = [ocean.ocean_id for ocean in oceans]
+    ocean_auction_pairs = service.get_auctionable_oceans(region=region, detail=detail)
+    ocean_ids = [ocean.ocean_id for ocean, _ in ocean_auction_pairs]
     recent_prices_map = service.get_recent_price_history(ocean_ids)
     return [
-        OceanResponse(
+        OceanWithAuctionResponse(
             ocean_id=ocean.ocean_id,
             ocean_name=ocean.ocean_name,
             lat=ocean.lat,
@@ -105,9 +106,11 @@ def get_auctionable_oceans(
             detail=ocean.detail,
             current_price=ocean.current_price,
             available_square_meters=ocean.available_square_meters,
-            recent_prices=recent_prices_map.get(ocean.ocean_id, [])
+            recent_prices=recent_prices_map.get(ocean.ocean_id, []),
+            auction_id=auction.id,
+            auction_square_meters=auction.square_meters
         )
-        for ocean in oceans
+        for ocean, auction in ocean_auction_pairs
     ]
 
 
