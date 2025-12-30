@@ -13,8 +13,15 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
+    # AI Model Selection
+    AI_MODEL_PROVIDER: str = "openai"  # "openai" or "gemini"
+
     # Gemini API
-    GEMINI_API_KEY: str
+    GEMINI_API_KEY: str = ""
+
+    # OpenAI API
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "gpt-4o-mini"  # gpt-4, gpt-4o-mini, gpt-3.5-turbo 등
 
     # News API
     NEWS_API_KEY: str

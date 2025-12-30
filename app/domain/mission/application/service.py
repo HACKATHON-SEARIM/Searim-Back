@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from typing import List, Dict
 from fastapi import HTTPException, status, UploadFile
 from app.domain.mission.domain.repository import MissionRepository
-from app.core.ai.gemini_client import gemini_client
+from app.core.ai.ai_client import ai_client
 from app.config import get_settings
 import uuid
 import os
@@ -82,9 +82,9 @@ class MissionService:
                 detail="이미 완료한 미션입니다."
             )
 
-        # 이미지 검증 (Gemini API 사용)
+        # 이미지 검증 (AI API 사용)
         image_bytes = await image.read()
-        is_valid = await gemini_client.verify_mission_image(image_bytes, mission.todo)
+        is_valid = await ai_client.verify_mission_image(image_bytes, mission.todo)
 
         if not is_valid:
             raise HTTPException(
@@ -144,9 +144,9 @@ class MissionService:
                 detail="해당 위치의 해양을 찾을 수 없습니다. 해양 근처에서 시도해주세요."
             )
 
-        # 이미지 검증 (Gemini API 사용)
+        # 이미지 검증 (AI API 사용)
         image_bytes = await image.read()
-        is_garbage = await gemini_client.verify_garbage_image(image_bytes)
+        is_garbage = await ai_client.verify_garbage_image(image_bytes)
 
         if not is_garbage:
             raise HTTPException(
@@ -235,7 +235,7 @@ class MissionService:
 
                 for i in range(missions_to_create):
                     # AI로 미션 생성
-                    mission_data = await gemini_client.generate_mission()
+                    mission_data = await ai_client.generate_mission()
 
                     if mission_data:
                         # DB에 미션 저장

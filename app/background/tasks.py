@@ -141,9 +141,9 @@ async def fetch_and_update_articles():
                     # 기사 내용 준비 (description이나 content 사용)
                     article_content = description or content or ""
 
-                    # Gemini AI로 감성 분석
-                    from app.core.ai.gemini_client import gemini_client
-                    sentiment_str = await gemini_client.analyze_article_sentiment(
+                    # AI로 감성 분석
+                    from app.core.ai.ai_client import ai_client
+                    sentiment_str = await ai_client.analyze_article_sentiment(
                         ocean_name=matched_ocean.ocean_name,
                         article_title=title,
                         article_content=article_content
