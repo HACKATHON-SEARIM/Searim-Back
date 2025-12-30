@@ -10,6 +10,7 @@
 
 import httpx
 import math
+import random
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
@@ -41,14 +42,22 @@ async def fetch_and_update_articles():
         # 전체 해양 관련 뉴스를 한 번에 검색
         try:
             async with httpx.AsyncClient() as client:
+                # 부산 지역 해양 관련 키워드로 검색
+                query_keywords = (
+                    "부산 해양 OR 부산 바다 OR 해운대 OR 광안리 OR "
+                    "송정해수욕장 OR 영도 OR 다대포 OR 기장 OR "
+                    "오륙도 OR 수영만 OR 부산항 OR 해양환경 OR "
+                    "수질 OR 해수욕장"
+                )
+
                 response = await client.get(
                     settings.NEWS_API_URL,
                     params={
                         "apiKey": settings.NEWS_API_KEY,
-                        "q": "해양 OR 바다 OR 해수욕장 OR 항구",
+                        "q": query_keywords,
                         "language": "ko",
                         "sortBy": "publishedAt",
-                        "pageSize": 50  # 더 많은 기사 가져오기
+                        "pageSize": 100  # 더 많은 기사 가져오기
                     },
                     timeout=10.0
                 )
@@ -368,29 +377,79 @@ async def fetch_and_update_ocean_data():
                         WaterQuality.ocean_id == ocean.ocean_id
                     ).first()
 
+                    # 거리와 관측소 유형에 따라 수질 값 다르게 생성
+                    # 거리가 가까울수록, 좋은 관측소일수록 더 좋은 수질
+                    distance_factor = max(0.5, 1 - (min_distance / 200))  # 0.5 ~ 1.0
+
+                    if "종합해양과학기지" in station_type:
+                        quality_factor = 1.0
+                    elif "해양관측부이" in station_type:
+                        quality_factor = 0.9
+                    elif "조위관측소" in station_type:
+                        quality_factor = 0.8
+                    else:
+                        quality_factor = 0.7
+
+                    # 해양별로 약간씩 다른 수질 값 생성
+                    random.seed(ocean.ocean_id + int(min_distance * 10))  # 해양 ID와 거리로 시드 설정
+
+                    base_do = 7.0 + (quality_factor * distance_factor * 2.0)  # 7.0 ~ 9.0
+                    do_value = round(base_do + random.uniform(-0.5, 0.5), 1)
+
+                    base_ph = 7.8 + (quality_factor * distance_factor * 0.5)  # 7.8 ~ 8.3
+                    ph_value = round(base_ph + random.uniform(-0.2, 0.2), 1)
+
+                    base_nitrogen = 0.5 - (quality_factor * distance_factor * 0.3)  # 0.2 ~ 0.5
+                    nitrogen_value = round(base_nitrogen + random.uniform(-0.05, 0.05), 2)
+
+                    base_phosphorus = 0.04 - (quality_factor * distance_factor * 0.02)  # 0.02 ~ 0.04
+                    phosphorus_value = round(base_phosphorus + random.uniform(-0.005, 0.005), 3)
+
+                    base_turbidity = 3.0 - (quality_factor * distance_factor * 2.0)  # 1.0 ~ 3.0
+                    turbidity_value = round(base_turbidity + random.uniform(-0.3, 0.3), 1)
+
+                    # 상태 판단
+                    do_status = WaterQualityStatus.NORMAL if do_value >= 7.0 else WaterQualityStatus.WARNING
+                    ph_status = WaterQualityStatus.NORMAL if 7.5 <= ph_value <= 8.5 else WaterQualityStatus.WARNING
+                    nitrogen_status = WaterQualityStatus.NORMAL if nitrogen_value < 0.4 else WaterQualityStatus.WARNING
+                    phosphorus_status = WaterQualityStatus.NORMAL if phosphorus_value < 0.03 else WaterQualityStatus.WARNING
+                    turbidity_status = WaterQualityStatus.NORMAL if turbidity_value < 2.0 else WaterQualityStatus.WARNING
+
                     if not water_quality:
-                        # 새로운 수질 데이터 생성 (기본값 사용)
+                        # 새로운 수질 데이터 생성 (관측소별로 다른 값)
                         water_quality = WaterQuality(
                             ocean_id=ocean.ocean_id,
-                            dissolved_oxygen_value=8.0,  # 기본값 (mg/L)
-                            dissolved_oxygen_status=WaterQualityStatus.NORMAL,
-                            ph_value=8.1,  # 기본값
-                            ph_status=WaterQualityStatus.NORMAL,
-                            nitrogen_value=0.3,  # 기본값 (mg/L)
-                            nitrogen_status=WaterQualityStatus.NORMAL,
-                            phosphorus_value=0.02,  # 기본값 (mg/L)
-                            phosphorus_status=WaterQualityStatus.NORMAL,
-                            turbidity_value=1.5,  # 기본값 (NTU)
-                            turbidity_status=WaterQualityStatus.NORMAL,
+                            dissolved_oxygen_value=do_value,
+                            dissolved_oxygen_status=do_status,
+                            ph_value=ph_value,
+                            ph_status=ph_status,
+                            nitrogen_value=nitrogen_value,
+                            nitrogen_status=nitrogen_status,
+                            phosphorus_value=phosphorus_value,
+                            phosphorus_status=phosphorus_status,
+                            turbidity_value=turbidity_value,
+                            turbidity_status=turbidity_status,
                             heavy_metals_detected=0,
                             oil_spill_detected=0,
                             price_change=price_change
                         )
                         db.add(water_quality)
+                        print(f"    💧 수질: DO={do_value}, pH={ph_value}, 질소={nitrogen_value}, 탁도={turbidity_value}")
                     else:
-                        # 기존 수질 데이터 업데이트 (가격 변동만)
+                        # 기존 수질 데이터 업데이트 (값 변경)
+                        water_quality.dissolved_oxygen_value = do_value
+                        water_quality.dissolved_oxygen_status = do_status
+                        water_quality.ph_value = ph_value
+                        water_quality.ph_status = ph_status
+                        water_quality.nitrogen_value = nitrogen_value
+                        water_quality.nitrogen_status = nitrogen_status
+                        water_quality.phosphorus_value = phosphorus_value
+                        water_quality.phosphorus_status = phosphorus_status
+                        water_quality.turbidity_value = turbidity_value
+                        water_quality.turbidity_status = turbidity_status
                         water_quality.price_change += price_change
                         water_quality.measured_at = datetime.utcnow()
+                        print(f"    💧 수질 업데이트: DO={do_value}, pH={ph_value}")
 
             db.commit()
             print(f"✅ 해양 관측소 데이터 업데이트 완료: {matched_ocean_count}/{len(oceans)}개 해양에 수질 데이터 추가")
