@@ -299,7 +299,11 @@ async def generate_building_income():
                     continue
 
                 # 마지막 수익금 지급 이후 경과 시간 계산 (초 단위)
-                elapsed_seconds = (now - building.last_income_generated_at).total_seconds()
+                last_time = building.last_income_generated_at
+                # DB에서 읽어온 naive datetime을 KST aware datetime으로 변환
+                if last_time.tzinfo is None:
+                    last_time = last_time.replace(tzinfo=ZoneInfo("Asia/Seoul"))
+                elapsed_seconds = (now - last_time).total_seconds()
                 print(f"      경과 시간: {elapsed_seconds:.2f}초")
 
                 if elapsed_seconds >= 1:  # 1초 이상 경과
