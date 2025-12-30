@@ -60,6 +60,9 @@ async def fetch_and_update_articles():
                 data = response.json()
                 articles_data = data.get("articles", [])
 
+                print(f"📰 뉴스 API에서 {len(articles_data)}개 기사 조회 완료")
+
+                matched_count = 0
                 for article_data in articles_data:
                     url = article_data.get("url")
                     title = article_data.get("title")
@@ -79,7 +82,7 @@ async def fetch_and_update_articles():
                     matched_ocean = None
                     for ocean in oceans:
                         # 해양 이름의 주요 키워드 추출 (예: "해운대 앞바다" -> "해운대")
-                        ocean_keywords = ocean.ocean_name.replace(" 앞바다", "").replace(" 해역", "")
+                        ocean_keywords = ocean.ocean_name.replace(" 앞바다", "").replace(" 해역", "").replace("만", "")
 
                         if ocean_keywords in title:
                             matched_ocean = ocean
@@ -88,6 +91,9 @@ async def fetch_and_update_articles():
                     # 매칭되는 해양이 없으면 스킵
                     if not matched_ocean:
                         continue
+
+                    matched_count += 1
+                    print(f"  ✅ 기사 매칭: [{matched_ocean.ocean_name}] {title[:50]}...")
 
                     # 기사 내용 준비 (description이나 content 사용)
                     article_content = description or content or ""
@@ -123,6 +129,7 @@ async def fetch_and_update_articles():
                         matched_ocean.current_price = 100
 
                 db.commit()
+                print(f"✅ 총 {matched_count}개 기사 매칭 및 저장 완료")
 
         except Exception as e:
             print(f"기사 수집 오류: {e}")
@@ -290,7 +297,9 @@ async def fetch_and_update_ocean_data():
 
             # 모든 해양 조회
             oceans = db.query(Ocean).all()
+            print(f"🌊 {len(oceans)}개 해양에 대해 관측소 매칭 중...")
 
+            matched_ocean_count = 0
             for ocean in oceans:
                 # 해양과 가장 가까운 관측소 찾기
                 closest_station = None
@@ -301,10 +310,11 @@ async def fetch_and_update_ocean_data():
                         station_lat = float(station.get("위도", 0))
                         station_lon = float(station.get("경도", 0))
 
-                        # 거리 계산 (간단한 유클리드 거리)
+                        # 거리 계산 (유클리드 거리 -> km로 변환)
+                        # 위도/경도 1도 = 약 111km
                         distance = math.sqrt(
-                            (ocean.lat - station_lat) ** 2 +
-                            (ocean.lon - station_lon) ** 2
+                            ((ocean.lat - station_lat) * 111) ** 2 +
+                            ((ocean.lon - station_lon) * 111) ** 2
                         )
 
                         if distance < min_distance:
@@ -313,7 +323,11 @@ async def fetch_and_update_ocean_data():
                     except (ValueError, TypeError):
                         continue
 
-                if closest_station and min_distance < 1.0:  # 약 111km 이내
+                if closest_station and min_distance < 200:  # 200km 이내로 범위 확대
+                    matched_ocean_count += 1
+                    station_name = closest_station.get("관측소 명", "알 수 없음")
+                    print(f"  ✅ [{ocean.ocean_name}] 관측소 매칭: {station_name} (거리: {min_distance:.1f}km)")
+
                     # 관측소 유형에 따라 가격 변동
                     station_type = closest_station.get("관측소 유형", "")
 
@@ -356,7 +370,7 @@ async def fetch_and_update_ocean_data():
                         water_quality.measured_at = datetime.utcnow()
 
             db.commit()
-            print(f"해양 관측소 데이터 업데이트 완료: {len(stations)}개 관측소")
+            print(f"✅ 해양 관측소 데이터 업데이트 완료: {matched_ocean_count}/{len(oceans)}개 해양에 수질 데이터 추가")
 
     except Exception as e:
         print(f"해양 관측소 데이터 수집 오류: {e}")
