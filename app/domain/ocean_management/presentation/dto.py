@@ -76,3 +76,39 @@ class BuildResponse(BaseModel):
                 "message": "음식점 또는 빌딩 생성에 성공하였습니다"
             }
         }
+
+
+class PurchaseOceanRequest(BaseModel):
+    """해양 구매 요청 DTO"""
+
+    square_meters: int = Field(..., description="구매할 평수", gt=0)
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "square_meters": 100
+            }
+        }
+
+
+class PurchaseOceanResponse(BaseModel):
+    """해양 구매 응답 DTO"""
+
+    message: str = Field(..., description="응답 메시지")
+    ocean_id: int = Field(..., description="해양 ID")
+    ocean_name: str = Field(..., description="해양 이름")
+    purchased_square_meters: int = Field(..., description="구매한 평수")
+    total_owned_square_meters: int = Field(..., description="총 소유 평수")
+    remaining_credits: int = Field(..., description="남은 크레딧")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "message": "해양 구매에 성공하였습니다",
+                "ocean_id": 1,
+                "ocean_name": "부산 앞바다",
+                "purchased_square_meters": 100,
+                "total_owned_square_meters": 100,
+                "remaining_credits": 8000
+            }
+        }

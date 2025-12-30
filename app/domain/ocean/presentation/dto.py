@@ -92,6 +92,30 @@ class PriceInfoResponse(BaseModel):
         }
 
 
+class OceanListItemResponse(BaseModel):
+    """해양 목록 항목 응답 DTO"""
+
+    ocean_id: int = Field(..., description="해양 ID")
+    ocean_name: str = Field(..., description="해양 이름")
+    region: str = Field(..., description="시/도")
+    detail: str = Field(..., description="구/군")
+    current_price: int = Field(..., description="현재 가격 (1평당)")
+    available_square_meters: int = Field(..., description="구매 가능한 평수")
+
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "ocean_id": 1,
+                "ocean_name": "동해",
+                "region": "강원도",
+                "detail": "강릉시",
+                "current_price": 1200,
+                "available_square_meters": 8000
+            }
+        }
+
+
 class OceanDetailResponse(BaseModel):
     """해양 상세 정보 응답 DTO"""
 

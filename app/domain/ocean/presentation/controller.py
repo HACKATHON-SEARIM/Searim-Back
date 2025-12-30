@@ -1,15 +1,56 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.orm import Session
+from typing import List, Optional
 from app.database import get_db
 from app.domain.ocean.application.service import OceanService
 from app.domain.ocean.presentation.dto import (
     OceanDetailResponse,
+    OceanListItemResponse,
     PriceInfoResponse,
     WaterQualityResponse,
     ArticleResponse
 )
 
 router = APIRouter(prefix="/ocean", tags=["Ocean"])
+
+
+@router.get(
+    "",
+    response_model=List[OceanListItemResponse],
+    status_code=status.HTTP_200_OK,
+    summary="해양 목록 조회",
+    description="해양 목록을 조회합니다. 지역(region) 및 세부 지역(detail)으로 필터링할 수 있습니다."
+)
+def get_oceans(
+    region: Optional[str] = Query(None, description="지역 필터 (시/도)"),
+    detail: Optional[str] = Query(None, description="세부 지역 필터 (시/군/구)"),
+    db: Session = Depends(get_db)
+) -> List[OceanListItemResponse]:
+    """
+    해양 목록 조회 엔드포인트
+
+    Args:
+        region: 지역 필터 (시/도)
+        detail: 세부 지역 필터 (시/군/구)
+        db: 데이터베이스 세션
+
+    Returns:
+        List[OceanListItemResponse]: 해양 목록
+    """
+    service = OceanService(db)
+    oceans = service.get_all_oceans(region=region, detail=detail)
+
+    return [
+        OceanListItemResponse(
+            ocean_id=ocean.ocean_id,
+            ocean_name=ocean.ocean_name,
+            region=ocean.region,
+            detail=ocean.detail,
+            current_price=ocean.current_price,
+            available_square_meters=ocean.available_square_meters
+        )
+        for ocean in oceans
+    ]
 
 
 @router.get(

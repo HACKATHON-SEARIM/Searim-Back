@@ -3,6 +3,7 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from jose import jwt
 from fastapi import HTTPException, status
+from typing import Dict, Any, List
 from app.domain.auth.domain.repository import UserRepository
 from app.config import get_settings
 
@@ -88,6 +89,54 @@ class AuthService:
         access_token = self._create_access_token(username=user.user_id)
 
         return access_token
+
+    def get_user_info(self, username: str) -> Dict[str, Any]:
+        """
+        사용자 정보를 조회합니다.
+
+        Args:
+            username: 사용자 이름
+
+        Returns:
+            Dict[str, Any]: 사용자 정보
+
+        Raises:
+            HTTPException: 사용자가 존재하지 않는 경우
+        """
+        user = self.repository.find_by_username(username)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="사용자를 찾을 수 없습니다."
+            )
+
+        return {
+            "username": user.user_id,
+            "credits": user.credits,
+            "created_at": user.created_at
+        }
+
+    def get_ranking(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """
+        크레딧 랭킹을 조회합니다.
+
+        Args:
+            limit: 조회할 사용자 수 (기본값: 10)
+
+        Returns:
+            List[Dict[str, Any]]: 랭킹 목록
+        """
+        users = self.repository.find_top_users_by_credits(limit)
+
+        ranking = []
+        for idx, user in enumerate(users, start=1):
+            ranking.append({
+                "rank": idx,
+                "username": user.user_id,
+                "credits": user.credits
+            })
+
+        return ranking
 
     def _hash_password(self, password: str) -> str:
         """

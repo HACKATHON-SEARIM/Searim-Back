@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Query
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from typing import List
 from app.database import get_db
 from app.domain.auth.application.service import AuthService
-from app.domain.auth.presentation.dto import SignupRequest, AuthResponse
+from app.domain.auth.presentation.dto import SignupRequest, AuthResponse, UserInfoResponse, RankingItemResponse
+from app.core.security.jwt import get_current_username
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -70,3 +72,72 @@ def login(
         password=form_data.password
     )
     return AuthResponse(access_token=access_token)
+
+
+@router.get(
+    "/me",
+    response_model=UserInfoResponse,
+    status_code=status.HTTP_200_OK,
+    summary="내 정보 조회",
+    description="현재 로그인한 사용자의 정보를 조회합니다. JWT 인증이 필요합니다."
+)
+def get_my_info(
+    current_username: str = Depends(get_current_username),
+    db: Session = Depends(get_db)
+) -> UserInfoResponse:
+    """
+    내 정보 조회 엔드포인트
+
+    Args:
+        current_username: 현재 로그인한 사용자 이름 (JWT에서 추출)
+        db: 데이터베이스 세션
+
+    Returns:
+        UserInfoResponse: 사용자 정보
+
+    Raises:
+        HTTPException 404: 사용자를 찾을 수 없는 경우
+    """
+    service = AuthService(db)
+    user_info = service.get_user_info(current_username)
+    return UserInfoResponse(**user_info)
+
+
+@router.get(
+    "/ranking",
+    response_model=List[RankingItemResponse],
+    status_code=status.HTTP_200_OK,
+    summary="크레딧 랭킹 조회",
+    description="크레딧이 높은 순서로 사용자 랭킹을 조회합니다."
+)
+def get_ranking(
+    limit: int = Query(10, description="조회할 사용자 수", ge=1, le=100),
+    db: Session = Depends(get_db)
+) -> List[RankingItemResponse]:
+    """
+    크레딧 랭킹 조회 엔드포인트
+
+    Args:
+        limit: 조회할 사용자 수 (기본값: 10, 최대: 100)
+        db: 데이터베이스 세션
+
+    Returns:
+        List[RankingItemResponse]: 랭킹 목록
+
+    Example Response:
+        [
+            {
+                "rank": 1,
+                "username": "huhon",
+                "credits": 50000
+            },
+            {
+                "rank": 2,
+                "username": "user2",
+                "credits": 30000
+            }
+        ]
+    """
+    service = AuthService(db)
+    ranking = service.get_ranking(limit)
+    return [RankingItemResponse(**item) for item in ranking]

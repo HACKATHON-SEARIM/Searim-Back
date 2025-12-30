@@ -145,3 +145,61 @@ class OceanManagementRepository:
             self.db.commit()
             self.db.refresh(user)
         return user
+
+    def update_ocean_available_square_meters(self, ocean_id: int, available_square_meters: int) -> Ocean:
+        """
+        해양의 구매 가능한 평수를 업데이트합니다.
+
+        Args:
+            ocean_id: 해양 ID
+            available_square_meters: 새로운 구매 가능 평수
+
+        Returns:
+            Ocean: 업데이트된 해양 객체
+        """
+        ocean = self.find_ocean_by_id(ocean_id)
+        if ocean:
+            ocean.available_square_meters = available_square_meters
+            self.db.commit()
+            self.db.refresh(ocean)
+        return ocean
+
+    def create_ownership(self, user_id: str, ocean_id: int, square_meters: int) -> OceanOwnership:
+        """
+        새로운 해양 소유권을 생성합니다.
+
+        Args:
+            user_id: 사용자 ID
+            ocean_id: 해양 ID
+            square_meters: 소유 평수
+
+        Returns:
+            OceanOwnership: 생성된 소유권 객체
+        """
+        ownership = OceanOwnership(
+            user_id=user_id,
+            ocean_id=ocean_id,
+            square_meters=square_meters
+        )
+        self.db.add(ownership)
+        self.db.commit()
+        self.db.refresh(ownership)
+        return ownership
+
+    def update_ownership_square_meters(self, ownership_id: int, square_meters: int) -> OceanOwnership:
+        """
+        기존 소유권의 평수를 업데이트합니다.
+
+        Args:
+            ownership_id: 소유권 ID
+            square_meters: 새로운 소유 평수
+
+        Returns:
+            OceanOwnership: 업데이트된 소유권 객체
+        """
+        ownership = self.db.query(OceanOwnership).filter(OceanOwnership.id == ownership_id).first()
+        if ownership:
+            ownership.square_meters = square_meters
+            self.db.commit()
+            self.db.refresh(ownership)
+        return ownership

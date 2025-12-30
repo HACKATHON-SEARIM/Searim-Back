@@ -19,6 +19,23 @@ class OceanService:
         self.water_quality_repository = WaterQualityRepository(db)
         self.article_repository = ArticleRepository(db)
 
+    def get_all_oceans(
+        self,
+        region: Optional[str] = None,
+        detail: Optional[str] = None
+    ) -> List[Ocean]:
+        """
+        해양 목록을 조회합니다.
+
+        Args:
+            region: 지역 필터 (시/도)
+            detail: 세부 지역 필터 (시/군/구)
+
+        Returns:
+            List[Ocean]: 해양 목록
+        """
+        return self.ocean_repository.find_all(region=region, detail=detail)
+
     def get_ocean_detail(
         self,
         ocean_id: int

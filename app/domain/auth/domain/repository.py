@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, List
 from app.domain.auth.domain.entity import User
 
 
@@ -54,3 +54,20 @@ class UserRepository:
             bool: 존재 여부
         """
         return self.db.query(User).filter(User.user_id == username).count() > 0
+
+    def find_top_users_by_credits(self, limit: int = 10) -> List[User]:
+        """
+        크레딧이 높은 순서로 사용자를 조회합니다.
+
+        Args:
+            limit: 조회할 사용자 수 (기본값: 10)
+
+        Returns:
+            List[User]: 사용자 목록 (크레딧 내림차순)
+        """
+        return (
+            self.db.query(User)
+            .order_by(User.credits.desc())
+            .limit(limit)
+            .all()
+        )

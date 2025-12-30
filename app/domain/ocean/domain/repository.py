@@ -10,6 +10,30 @@ class OceanRepository:
     def __init__(self, db: Session):
         self.db = db
 
+    def find_all(
+        self,
+        region: Optional[str] = None,
+        detail: Optional[str] = None
+    ) -> List[Ocean]:
+        """
+        해양 목록을 조회합니다.
+
+        Args:
+            region: 지역 필터 (시/도)
+            detail: 세부 지역 필터 (시/군/구)
+
+        Returns:
+            List[Ocean]: 해양 목록
+        """
+        query = self.db.query(Ocean)
+
+        if region:
+            query = query.filter(Ocean.region == region)
+        if detail:
+            query = query.filter(Ocean.detail == detail)
+
+        return query.all()
+
     def find_by_id(self, ocean_id: int) -> Optional[Ocean]:
         """
         해양 ID로 해양을 조회합니다.
