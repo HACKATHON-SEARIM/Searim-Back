@@ -159,16 +159,18 @@ class OceanTradeService:
         )
 
         # 판매 등록 시 소유권 차감
+        new_square_meters = ownership.square_meters - square_meters
         self.repository.update_ownership_square_meters(
-            ownership, ownership.square_meters - square_meters
+            ownership, new_square_meters
         )
 
-        # 해양을 판매하면 해당 해양의 건물 삭제
-        deleted_buildings = self.repository.delete_buildings_by_user_and_ocean(
-            seller_username, ocean_id
-        )
-        if deleted_buildings > 0:
-            print(f"🏚️  해양 판매로 인해 {deleted_buildings}개 건물 삭제 (사용자: {seller_username}, 해양: {ocean_id})")
+        # 소유권이 0이 되면 해당 해양의 건물 삭제
+        if new_square_meters == 0:
+            deleted_buildings = self.repository.delete_buildings_by_user_and_ocean(
+                seller_username, ocean_id
+            )
+            if deleted_buildings > 0:
+                print(f"🏚️  소유권 상실로 인해 {deleted_buildings}개 건물 삭제 (사용자: {seller_username}, 해양: {ocean_id})")
 
         return sale
 
@@ -213,16 +215,18 @@ class OceanTradeService:
         )
 
         # 경매 등록 시 소유권 차감
+        new_square_meters = ownership.square_meters - square_meters
         self.repository.update_ownership_square_meters(
-            ownership, ownership.square_meters - square_meters
+            ownership, new_square_meters
         )
 
-        # 해양을 경매에 올리면 해당 해양의 건물 삭제
-        deleted_buildings = self.repository.delete_buildings_by_user_and_ocean(
-            seller_username, ocean_id
-        )
-        if deleted_buildings > 0:
-            print(f"🏚️  해양 경매로 인해 {deleted_buildings}개 건물 삭제 (사용자: {seller_username}, 해양: {ocean_id})")
+        # 소유권이 0이 되면 해당 해양의 건물 삭제
+        if new_square_meters == 0:
+            deleted_buildings = self.repository.delete_buildings_by_user_and_ocean(
+                seller_username, ocean_id
+            )
+            if deleted_buildings > 0:
+                print(f"🏚️  소유권 상실로 인해 {deleted_buildings}개 건물 삭제 (사용자: {seller_username}, 해양: {ocean_id})")
 
         return auction
 
