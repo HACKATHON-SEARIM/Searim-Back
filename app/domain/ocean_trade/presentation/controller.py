@@ -18,7 +18,7 @@ from app.domain.ocean_trade.presentation.dto import (
 from app.core.security.jwt import get_current_username
 from app.domain.auth.domain.repository import UserRepository
 
-router = APIRouter(prefix="/ocean", tags=["Ocean Trade"])
+router = APIRouter(prefix="/ocean-trade", tags=["Ocean Trade"])
 
 
 @router.get(

@@ -6,9 +6,7 @@ from app.domain.ocean_management.application.service import OceanManagementServi
 from app.domain.ocean_management.presentation.dto import (
     MyOceanResponse,
     BuildRequest,
-    BuildResponse,
-    PurchaseOceanRequest,
-    PurchaseOceanResponse
+    BuildResponse
 )
 from app.core.security.jwt import get_current_username
 
@@ -106,56 +104,3 @@ def build_on_ocean(
         build_type=request.build_type
     )
     return BuildResponse(**result)
-
-
-@router.post(
-    "/purchase/{ocean_id}",
-    response_model=PurchaseOceanResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="해양 구매",
-    description="해양을 구매합니다. 구매 시 크레딧이 차감되며 소유권이 생성됩니다. JWT 인증이 필요합니다."
-)
-def purchase_ocean(
-    ocean_id: int,
-    request: PurchaseOceanRequest,
-    current_username: str = Depends(get_current_username),
-    db: Session = Depends(get_db)
-) -> PurchaseOceanResponse:
-    """
-    해양 구매 엔드포인트
-
-    Args:
-        ocean_id: 구매할 해양 ID
-        request: 구매 요청 (square_meters)
-        current_username: 현재 로그인한 사용자 이름 (JWT에서 추출)
-        db: 데이터베이스 세션
-
-    Returns:
-        PurchaseOceanResponse: 구매 결과
-
-    Raises:
-        HTTPException 404: 해양이 존재하지 않는 경우
-        HTTPException 400: 구매 가능한 평수 부족 또는 크레딧 부족
-
-    Example Request:
-        {
-            "square_meters": 100
-        }
-
-    Example Response:
-        {
-            "message": "해양 구매에 성공하였습니다",
-            "ocean_id": 1,
-            "ocean_name": "부산 앞바다",
-            "purchased_square_meters": 100,
-            "total_owned_square_meters": 100,
-            "remaining_credits": 8000
-        }
-    """
-    service = OceanManagementService(db)
-    result = service.purchase_ocean(
-        user_id=current_username,
-        ocean_id=ocean_id,
-        square_meters=request.square_meters
-    )
-    return PurchaseOceanResponse(**result)

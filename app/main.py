@@ -17,7 +17,7 @@ from app.background.tasks import (
 from app.domain.auth.presentation.controller import router as auth_router
 from app.domain.ocean.presentation.controller import router as ocean_router
 from app.domain.ocean_management.presentation.controller import router as ocean_management_router
-# from app.domain.ocean_trade.presentation.controller import router as ocean_trade_router  # 임시 주석
+from app.domain.ocean_trade.presentation.controller import router as ocean_trade_router
 from app.domain.mission.presentation.controller import router as mission_router
 from app.domain.article.presentation.controller import router as article_router
 
@@ -140,7 +140,7 @@ add_exception_handlers(app)
 app.include_router(auth_router, prefix="/api", tags=["인증/인가"])
 app.include_router(ocean_router, prefix="/api", tags=["해양"])
 app.include_router(ocean_management_router, prefix="/api", tags=["해양 관리"])
-# app.include_router(ocean_trade_router, prefix="/api", tags=["해양 거래"])  # 임시 주석
+app.include_router(ocean_trade_router, prefix="/api", tags=["해양 거래"])
 app.include_router(mission_router, prefix="/api", tags=["미션"])
 app.include_router(article_router, prefix="/api", tags=["기사"])
 
