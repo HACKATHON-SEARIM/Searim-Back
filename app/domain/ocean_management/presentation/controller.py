@@ -10,11 +10,11 @@ from app.domain.ocean_management.presentation.dto import (
 )
 from app.core.security.jwt import get_current_user_id
 
-router = APIRouter(prefix="/ocean", tags=["Ocean Management"])
+router = APIRouter(prefix="/my-ocean", tags=["Ocean Management"])
 
 
 @router.get(
-    "/my",
+    "",
     response_model=List[MyOceanResponse],
     status_code=status.HTTP_200_OK,
     summary="내 해양 지역 조회",
@@ -59,7 +59,7 @@ def get_my_oceans(
 
 
 @router.post(
-    "/my/build",
+    "/build",
     response_model=BuildResponse,
     status_code=status.HTTP_201_CREATED,
     summary="건물 짓기",
