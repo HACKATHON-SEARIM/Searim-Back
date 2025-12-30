@@ -4,6 +4,7 @@ from app.domain.mission.domain.entity import Mission, UserMission, GarbageCollec
 from app.domain.ocean.domain.entity import Ocean
 from app.domain.auth.domain.entity import User
 from datetime import datetime
+import math
 
 
 class MissionRepository:
@@ -126,22 +127,45 @@ class MissionRepository:
         self.db.refresh(user)
         return user
 
-    def find_ocean_by_location(self, lat: float, lon: float, radius: float = 0.1) -> Optional[Ocean]:
+    def find_ocean_by_location(self, lat: float, lon: float, max_distance: float = 100.0) -> Optional[Ocean]:
         """
-        위치 기반으로 해양을 조회합니다.
+        위치에서 가장 가까운 해양을 조회합니다.
 
         Args:
             lat: 위도
             lon: 경도
-            radius: 검색 반경 (기본: 0.1도, 약 11km)
+            max_distance: 최대 거리 (km, 기본: 100km)
 
         Returns:
-            Optional[Ocean]: 조회된 해양 또는 None
+            Optional[Ocean]: 가장 가까운 해양 또는 None
         """
-        return self.db.query(Ocean).filter(
-            Ocean.lat.between(lat - radius, lat + radius),
-            Ocean.lon.between(lon - radius, lon + radius)
-        ).first()
+        # 모든 해양 조회
+        all_oceans = self.db.query(Ocean).all()
+
+        if not all_oceans:
+            return None
+
+        # 가장 가까운 해양 찾기
+        closest_ocean = None
+        min_distance = float('inf')
+
+        for ocean in all_oceans:
+            # 거리 계산 (유클리드 거리 -> km로 변환)
+            # 위도/경도 1도는 약 111km
+            distance = math.sqrt(
+                ((ocean.lat - lat) * 111) ** 2 +
+                ((ocean.lon - lon) * 111) ** 2
+            )
+
+            if distance < min_distance:
+                min_distance = distance
+                closest_ocean = ocean
+
+        # 최대 거리 내에 있는 경우만 반환
+        if closest_ocean and min_distance <= max_distance:
+            return closest_ocean
+
+        return None
 
     def create_garbage_collection(
         self,
@@ -193,3 +217,42 @@ class MissionRepository:
         self.db.commit()
         self.db.refresh(ocean)
         return ocean
+
+    def count_missions(self) -> int:
+        """
+        전체 미션 개수를 조회합니다.
+
+        Returns:
+            int: 미션 개수
+        """
+        return self.db.query(Mission).count()
+
+    def create_mission(self, todo: str, credits: int, mission_type: str) -> Mission:
+        """
+        새로운 미션을 생성합니다.
+
+        Args:
+            todo: 미션 내용
+            credits: 보상 크레딧
+            mission_type: 미션 타입 (DAILY, SPECIAL)
+
+        Returns:
+            Mission: 생성된 미션
+        """
+        from app.domain.mission.domain.entity import MissionType
+
+        # mission_type을 Enum으로 변환
+        if mission_type == "SPECIAL":
+            mt = MissionType.SPECIAL
+        else:
+            mt = MissionType.DAILY
+
+        mission = Mission(
+            todo=todo,
+            credits=credits,
+            mission_type=mt
+        )
+        self.db.add(mission)
+        self.db.commit()
+        self.db.refresh(mission)
+        return mission

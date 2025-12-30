@@ -57,6 +57,20 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"⚠️  해양 관측소 데이터 수집 오류: {e}")
 
+    # 미션 자동 생성 (5개 유지)
+    try:
+        from app.database import SessionLocal
+        from app.domain.mission.application.service import MissionService
+
+        db = SessionLocal()
+        try:
+            mission_service = MissionService(db)
+            await mission_service.check_and_generate_missions()
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"⚠️  미션 자동 생성 오류: {e}")
+
     # generate_building_income은 매 초마다 실행되므로 초기 실행 생략
     print("✅ 초기 백그라운드 작업 완료\n")
 

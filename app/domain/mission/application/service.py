@@ -105,6 +105,9 @@ class MissionService:
 
         self.repository.update_user_credits(user, mission.credits)
 
+        # 미션 완료 후 미션 개수 확인 및 자동 생성
+        await self.check_and_generate_missions()
+
         return {
             "message": "미션을 완료했습니다.",
             "credits_earned": mission.credits,
@@ -215,3 +218,38 @@ class MissionService:
         # 실제로는 S3 등에 업로드하고 URL 반환
         # 임시로 로컬 경로 반환
         return file_path
+
+    async def check_and_generate_missions(self) -> None:
+        """
+        미션 개수를 확인하고 5개 미만이면 AI로 자동 생성합니다.
+
+        항상 5개의 미션이 유지되도록 합니다.
+        """
+        try:
+            current_count = self.repository.count_missions()
+            target_count = 5
+
+            if current_count < target_count:
+                missions_to_create = target_count - current_count
+                print(f"📝 현재 미션: {current_count}개, {missions_to_create}개 생성 중...")
+
+                for i in range(missions_to_create):
+                    # AI로 미션 생성
+                    mission_data = await gemini_client.generate_mission()
+
+                    if mission_data:
+                        # DB에 미션 저장
+                        new_mission = self.repository.create_mission(
+                            todo=mission_data["todo"],
+                            credits=mission_data["credits"],
+                            mission_type=mission_data["mission_type"]
+                        )
+                        print(f"✅ 미션 생성 완료: {new_mission.todo} (보상: {new_mission.credits} 크레딧)")
+                    else:
+                        print(f"⚠️  AI 미션 생성 실패 ({i + 1}/{missions_to_create})")
+
+                final_count = self.repository.count_missions()
+                print(f"✅ 미션 자동 생성 완료: 총 {final_count}개")
+
+        except Exception as e:
+            print(f"미션 자동 생성 오류: {e}")

@@ -27,10 +27,10 @@ async def fetch_and_update_articles():
     주기적으로 뉴스 기사를 수집하고 시세를 업데이트합니다.
 
     1. 뉴스 API에서 해양 관련 기사 조회
-    2. 각 해양 지역과 관련된 기사만 필터링
-    3. AI를 사용하여 기사 감성 분석 (긍정/부정/중립)
+    2. 기사 제목에 해양 이름이 포함된 기사만 필터링
+    3. 기사 내용을 기반으로 감성 분석 (긍정/부정/중립)
     4. 기사에 따라 해양 시세 업데이트
-    5. DB에 기사 저장
+    5. DB에 기사 저장 (이미지 포함)
     """
     db: Session = SessionLocal()
 
@@ -38,69 +38,95 @@ async def fetch_and_update_articles():
         # 모든 해양 조회
         oceans = db.query(Ocean).all()
 
-        for ocean in oceans:
-            # 해양 이름으로 뉴스 검색
-            try:
-                async with httpx.AsyncClient() as client:
-                    response = await client.get(
-                        settings.NEWS_API_URL,
-                        params={
-                            "apiKey": settings.NEWS_API_KEY,
-                            "q": f"{ocean.ocean_name} 해양",
-                            "language": "ko",
-                            "sortBy": "publishedAt",
-                            "pageSize": 5
-                        },
-                        timeout=10.0
+        # 전체 해양 관련 뉴스를 한 번에 검색
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    settings.NEWS_API_URL,
+                    params={
+                        "apiKey": settings.NEWS_API_KEY,
+                        "q": "해양 OR 바다 OR 해수욕장 OR 항구",
+                        "language": "ko",
+                        "sortBy": "publishedAt",
+                        "pageSize": 50  # 더 많은 기사 가져오기
+                    },
+                    timeout=10.0
+                )
+
+                if response.status_code != 200:
+                    print(f"뉴스 API 오류: HTTP {response.status_code}")
+                    return
+
+                data = response.json()
+                articles_data = data.get("articles", [])
+
+                for article_data in articles_data:
+                    url = article_data.get("url")
+                    title = article_data.get("title")
+                    description = article_data.get("description", "")
+                    content = article_data.get("content", "")
+                    image_url = article_data.get("urlToImage")
+
+                    if not url or not title:
+                        continue
+
+                    # 이미 저장된 기사인지 확인
+                    existing = db.query(Article).filter(Article.url == url).first()
+                    if existing:
+                        continue
+
+                    # 제목에 해양 이름이 포함되어 있는지 확인
+                    matched_ocean = None
+                    for ocean in oceans:
+                        # 해양 이름의 주요 키워드 추출 (예: "해운대 앞바다" -> "해운대")
+                        ocean_keywords = ocean.ocean_name.replace(" 앞바다", "").replace(" 해역", "")
+
+                        if ocean_keywords in title:
+                            matched_ocean = ocean
+                            break
+
+                    # 매칭되는 해양이 없으면 스킵
+                    if not matched_ocean:
+                        continue
+
+                    # 기사 내용 준비 (description이나 content 사용)
+                    article_content = description or content or ""
+                    if len(article_content) > 2000:
+                        article_content = article_content[:2000]
+
+                    # 기사 내용 기반 감성 분석
+                    sentiment = analyze_article_sentiment(title, article_content)
+
+                    # 가격 변동량 계산
+                    price_change = 0
+                    if sentiment == ArticleSentiment.POSITIVE:
+                        price_change = 150  # 긍정 기사: +150
+                    elif sentiment == ArticleSentiment.NEGATIVE:
+                        price_change = -150  # 부정 기사: -150
+
+                    # 기사 저장
+                    new_article = Article(
+                        ocean_id=matched_ocean.ocean_id,
+                        ocean_name=matched_ocean.ocean_name,
+                        title=title,
+                        content=article_content,
+                        url=url,
+                        image_url=image_url,
+                        sentiment=sentiment,
+                        price_change=price_change
                     )
+                    db.add(new_article)
 
-                    if response.status_code == 200:
-                        data = response.json()
-                        articles_data = data.get("articles", [])
+                    # 해양 시세 업데이트
+                    matched_ocean.current_price += price_change
+                    if matched_ocean.current_price < 100:  # 최소 가격 보장
+                        matched_ocean.current_price = 100
 
-                        for article_data in articles_data:
-                            url = article_data.get("url")
-                            title = article_data.get("title")
+                db.commit()
 
-                            if not url or not title:
-                                continue
-
-                            # 이미 저장된 기사인지 확인
-                            existing = db.query(Article).filter(Article.url == url).first()
-                            if existing:
-                                continue
-
-                            # 기사 감성 분석 (간단한 키워드 기반)
-                            sentiment = analyze_article_sentiment(title)
-
-                            # 가격 변동량 계산
-                            price_change = 0
-                            if sentiment == ArticleSentiment.POSITIVE:
-                                price_change = 150  # 긍정 기사: +150
-                            elif sentiment == ArticleSentiment.NEGATIVE:
-                                price_change = -150  # 부정 기사: -150
-
-                            # 기사 저장
-                            new_article = Article(
-                                ocean_id=ocean.ocean_id,
-                                ocean_name=ocean.ocean_name,
-                                title=title,
-                                url=url,
-                                sentiment=sentiment,
-                                price_change=price_change
-                            )
-                            db.add(new_article)
-
-                            # 해양 시세 업데이트
-                            ocean.current_price += price_change
-                            if ocean.current_price < 100:  # 최소 가격 보장
-                                ocean.current_price = 100
-
-                        db.commit()
-
-            except Exception as e:
-                print(f"기사 수집 오류 (Ocean ID: {ocean.ocean_id}): {e}")
-                continue
+        except Exception as e:
+            print(f"기사 수집 오류: {e}")
+            db.rollback()
 
     except Exception as e:
         print(f"기사 수집 작업 오류: {e}")
@@ -109,20 +135,35 @@ async def fetch_and_update_articles():
         db.close()
 
 
-def analyze_article_sentiment(title: str) -> ArticleSentiment:
+def analyze_article_sentiment(title: str, content: str) -> ArticleSentiment:
     """
-    기사 제목으로 감성 분석 (간단한 키워드 기반)
+    기사 제목과 내용을 기반으로 감성 분석 (키워드 기반)
 
-    실제 프로덕션에서는 AI 모델을 사용하는 것이 좋습니다.
+    Args:
+        title: 기사 제목
+        content: 기사 내용
+
+    Returns:
+        ArticleSentiment: 긍정/부정/중립
     """
-    positive_keywords = ["보존", "개선", "깨끗", "회복", "성공", "발전", "증가", "좋은"]
-    negative_keywords = ["오염", "위험", "감소", "파괴", "악화", "문제", "피해", "오염"]
+    positive_keywords = [
+        "보존", "개선", "깨끗", "회복", "성공", "발전", "증가", "좋은",
+        "활성화", "성장", "청정", "아름다운", "안전", "보호", "쾌적",
+        "개발", "투자", "관광", "축제", "활기", "번창"
+    ]
+    negative_keywords = [
+        "오염", "위험", "감소", "파괴", "악화", "문제", "피해",
+        "쓰레기", "사고", "폐기물", "유출", "적조", "녹조", "침식",
+        "폐쇄", "금지", "손실", "훼손", "취약", "우려"
+    ]
 
-    title_lower = title.lower()
+    # 제목과 내용을 합쳐서 분석
+    full_text = (title + " " + content).lower()
 
-    positive_count = sum(1 for keyword in positive_keywords if keyword in title_lower)
-    negative_count = sum(1 for keyword in negative_keywords if keyword in title_lower)
+    positive_count = sum(1 for keyword in positive_keywords if keyword in full_text)
+    negative_count = sum(1 for keyword in negative_keywords if keyword in full_text)
 
+    # 더 강한 가중치로 판단
     if positive_count > negative_count:
         return ArticleSentiment.POSITIVE
     elif negative_count > positive_count:
