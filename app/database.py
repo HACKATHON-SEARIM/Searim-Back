@@ -50,7 +50,7 @@ def init_db():
     """
     # 모든 Entity import (테이블 생성을 위해 필요)
     from app.domain.auth.domain.entity import User
-    from app.domain.ocean.domain.entity import Ocean, WaterQuality
+    from app.domain.ocean.domain.entity import Ocean, WaterQuality, OceanPriceHistory
     from app.domain.ocean_management.domain.entity import OceanOwnership, Building
     from app.domain.ocean_trade.domain.entity import OceanSale, OceanAuction, AuctionBid
     from app.domain.mission.domain.entity import Mission, UserMission, GarbageCollection

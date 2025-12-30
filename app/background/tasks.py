@@ -16,12 +16,18 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.domain.article.domain.entity import Article, ArticleSentiment
 from app.domain.ocean.domain.entity import Ocean, WaterQuality, WaterQualityStatus
+from app.domain.ocean.domain.repository import OceanRepository
 from app.domain.ocean_management.domain.entity import Building, BuildingType
 from app.domain.auth.domain.entity import User
 from app.config import get_settings
 from app.core.ai.ai_client import ai_client
 
 settings = get_settings()
+
+
+def _record_ocean_price_history(repo: OceanRepository, ocean: Ocean, previous_price: int) -> None:
+    if ocean.current_price != previous_price:
+        repo.add_price_history(ocean.ocean_id, ocean.current_price)
 
 
 async def fetch_and_update_articles():
@@ -38,6 +44,7 @@ async def fetch_and_update_articles():
 
     try:
         # 모든 해양 조회
+        ocean_repository = OceanRepository(db)
         oceans = db.query(Ocean).all()
 
         # 전체 해양 관련 뉴스를 한 번에 검색
@@ -178,9 +185,11 @@ async def fetch_and_update_articles():
                     db.add(new_article)
 
                     # 해양 시세 업데이트
+                    previous_price = matched_ocean.current_price
                     matched_ocean.current_price += price_change
                     if matched_ocean.current_price < 100:  # 최소 가격 보장
                         matched_ocean.current_price = 100
+                    _record_ocean_price_history(ocean_repository, matched_ocean, previous_price)
 
                 db.commit()
                 print(f"✅ 총 {matched_count}개 기사 매칭 및 저장 완료")
@@ -218,6 +227,7 @@ async def update_ocean_prices_by_garbage():
     db: Session = SessionLocal()
 
     try:
+        ocean_repository = OceanRepository(db)
         oceans = db.query(Ocean).all()
 
         for ocean in oceans:
@@ -233,9 +243,11 @@ async def update_ocean_prices_by_garbage():
             else:
                 price_change = -200  # 수집 없음: -200
 
+            previous_price = ocean.current_price
             ocean.current_price += price_change
             if ocean.current_price < 100:
                 ocean.current_price = 100
+            _record_ocean_price_history(ocean_repository, ocean, previous_price)
 
             # TODO: 일정 기간 쓰레기 수집이 부족하면 강제 경매 로직 추가
 
@@ -355,6 +367,7 @@ async def fetch_and_update_ocean_data():
                 return
 
             # 모든 해양 조회
+            ocean_repository = OceanRepository(db)
             oceans = db.query(Ocean).all()
             print(f"🌊 {len(oceans)}개 해양에 대해 관측소 매칭 중...")
 
@@ -401,9 +414,11 @@ async def fetch_and_update_ocean_data():
                         price_change = 50
 
                     # 시세 업데이트
+                    previous_price = ocean.current_price
                     ocean.current_price += price_change
                     if ocean.current_price < 100:
                         ocean.current_price = 100
+                    _record_ocean_price_history(ocean_repository, ocean, previous_price)
 
                     # 수질 데이터 업데이트 (관측소 정보 기반)
                     water_quality = db.query(WaterQuality).filter(

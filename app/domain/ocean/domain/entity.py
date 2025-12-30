@@ -33,6 +33,20 @@ class Ocean(Base):
         return f"<Ocean(ocean_id={self.ocean_id}, name={self.ocean_name}, price={self.current_price})>"
 
 
+class OceanPriceHistory(Base):
+    """해양 시세 이력 Entity"""
+
+    __tablename__ = "ocean_price_histories"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, comment="시세 이력 ID")
+    ocean_id = Column(Integer, ForeignKey("oceans.ocean_id"), nullable=False, index=True, comment="해양 ID")
+    price = Column(Integer, nullable=False, comment="시세 (1평당)")
+    recorded_at = Column(DateTime(timezone=True), server_default=func.now(), index=True, comment="기록 일시")
+
+    def __repr__(self):
+        return f"<OceanPriceHistory(ocean_id={self.ocean_id}, price={self.price})>"
+
+
 class WaterQualityStatus(str, enum.Enum):
     """수질 상태 Enum"""
     NORMAL = "normal"

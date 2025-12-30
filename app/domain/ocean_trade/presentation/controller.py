@@ -48,7 +48,22 @@ def get_purchasable_oceans(
     """
     service = OceanTradeService(db)
     oceans = service.get_purchasable_oceans(region=region, detail=detail)
-    return [OceanResponse.model_validate(ocean) for ocean in oceans]
+    ocean_ids = [ocean.ocean_id for ocean in oceans]
+    recent_prices_map = service.get_recent_price_history(ocean_ids)
+    return [
+        OceanResponse(
+            ocean_id=ocean.ocean_id,
+            ocean_name=ocean.ocean_name,
+            lat=ocean.lat,
+            lon=ocean.lon,
+            region=ocean.region,
+            detail=ocean.detail,
+            current_price=ocean.current_price,
+            available_square_meters=ocean.available_square_meters,
+            recent_prices=recent_prices_map.get(ocean.ocean_id, [])
+        )
+        for ocean in oceans
+    ]
 
 
 @router.get(
@@ -78,7 +93,22 @@ def get_auctionable_oceans(
     """
     service = OceanTradeService(db)
     oceans = service.get_auctionable_oceans(region=region, detail=detail)
-    return [OceanResponse.model_validate(ocean) for ocean in oceans]
+    ocean_ids = [ocean.ocean_id for ocean in oceans]
+    recent_prices_map = service.get_recent_price_history(ocean_ids)
+    return [
+        OceanResponse(
+            ocean_id=ocean.ocean_id,
+            ocean_name=ocean.ocean_name,
+            lat=ocean.lat,
+            lon=ocean.lon,
+            region=ocean.region,
+            detail=ocean.detail,
+            current_price=ocean.current_price,
+            available_square_meters=ocean.available_square_meters,
+            recent_prices=recent_prices_map.get(ocean.ocean_id, [])
+        )
+        for ocean in oceans
+    ]
 
 
 @router.post(

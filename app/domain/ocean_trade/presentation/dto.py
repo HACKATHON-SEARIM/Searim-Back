@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 
@@ -66,6 +66,10 @@ class OceanResponse(BaseModel):
     detail: str = Field(..., description="상세 지역")
     current_price: int = Field(..., description="현재 가격 (1평당)")
     available_square_meters: int = Field(..., description="구매 가능한 평수")
+    recent_prices: List[int] = Field(
+        default_factory=list,
+        description="최근 시세 값 10개 (최신순)"
+    )
 
     class Config:
         from_attributes = True
@@ -78,7 +82,8 @@ class OceanResponse(BaseModel):
                 "region": "부산광역시",
                 "detail": "해운대구",
                 "current_price": 1000,
-                "available_square_meters": 5000
+                "available_square_meters": 5000,
+                "recent_prices": [1200, 1100, 1000]
             }
         }
 

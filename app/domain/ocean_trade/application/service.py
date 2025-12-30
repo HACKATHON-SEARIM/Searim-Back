@@ -1,8 +1,9 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 from datetime import datetime, timedelta
 from app.domain.ocean_trade.domain.repository import OceanTradeRepository
+from app.domain.ocean.domain.repository import OceanRepository
 from app.domain.ocean_trade.domain.entity import (
     OceanSale,
     OceanAuction,
@@ -21,6 +22,7 @@ class OceanTradeService:
     def __init__(self, db: Session):
         self.db = db
         self.repository = OceanTradeRepository(db)
+        self.ocean_repository = OceanRepository(db)
         self.user_repository = UserRepository(db)
 
     def get_purchasable_oceans(
@@ -49,6 +51,17 @@ class OceanTradeService:
                 oceans.append(ocean)
 
         return oceans
+
+    def get_recent_price_history(
+        self,
+        ocean_ids: List[int],
+        limit: int = 10
+    ) -> Dict[int, List[int]]:
+        """해양별 최근 시세 목록을 조회합니다."""
+        return self.ocean_repository.find_recent_prices_by_ocean_ids(
+            ocean_ids=ocean_ids,
+            limit=limit
+        )
 
     def purchase_ocean(
         self,
@@ -152,6 +165,13 @@ class OceanTradeService:
             ownership, ownership.square_meters - square_meters
         )
 
+        # 해양을 판매하면 해당 해양의 건물 삭제
+        deleted_buildings = self.repository.delete_buildings_by_user_and_ocean(
+            seller_username, ocean_id
+        )
+        if deleted_buildings > 0:
+            print(f"🏚️  해양 판매로 인해 {deleted_buildings}개 건물 삭제 (사용자: {seller_username}, 해양: {ocean_id})")
+
         return sale
 
     def register_auction(
@@ -198,6 +218,13 @@ class OceanTradeService:
         self.repository.update_ownership_square_meters(
             ownership, ownership.square_meters - square_meters
         )
+
+        # 해양을 경매에 올리면 해당 해양의 건물 삭제
+        deleted_buildings = self.repository.delete_buildings_by_user_and_ocean(
+            seller_username, ocean_id
+        )
+        if deleted_buildings > 0:
+            print(f"🏚️  해양 경매로 인해 {deleted_buildings}개 건물 삭제 (사용자: {seller_username}, 해양: {ocean_id})")
 
         return auction
 

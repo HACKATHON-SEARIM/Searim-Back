@@ -3,7 +3,7 @@ from typing import List, Optional
 from datetime import datetime
 from app.domain.ocean_trade.domain.entity import OceanSale, OceanAuction, AuctionBid, SaleStatus, AuctionStatus
 from app.domain.ocean.domain.entity import Ocean
-from app.domain.ocean_management.domain.entity import OceanOwnership
+from app.domain.ocean_management.domain.entity import OceanOwnership, Building
 
 
 class OceanTradeRepository:
@@ -216,3 +216,13 @@ class OceanTradeRepository:
             .order_by(AuctionBid.bid_amount.desc())
             .first()
         )
+
+    # Building 관리
+    def delete_buildings_by_user_and_ocean(self, user_id: str, ocean_id: int) -> int:
+        """특정 사용자가 특정 해양에 소유한 모든 건물을 삭제합니다."""
+        deleted_count = (
+            self.db.query(Building)
+            .filter(Building.user_id == user_id, Building.ocean_id == ocean_id)
+            .delete(synchronize_session=False)
+        )
+        return deleted_count
