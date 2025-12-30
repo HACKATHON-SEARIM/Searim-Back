@@ -56,7 +56,7 @@ class Settings(BaseSettings):
     GARBAGE_BASE_REWARD: int = 100  # 기본 쓰레기 수집 보상
 
     # Initial Credits
-    INITIAL_CREDITS: int = 10000  # 신규 가입시 지급 크레딧
+    INITIAL_CREDITS: int = 99999999  # 신규 가입시 지급 크레딧 (시연용)
 
     class Config:
         env_file = ".env"
