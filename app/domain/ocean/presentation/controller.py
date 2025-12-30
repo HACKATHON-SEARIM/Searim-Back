@@ -44,6 +44,8 @@ def get_oceans(
         OceanListItemResponse(
             ocean_id=ocean.ocean_id,
             ocean_name=ocean.ocean_name,
+            lat=ocean.lat,
+            lon=ocean.lon,
             region=ocean.region,
             detail=ocean.detail,
             current_price=ocean.current_price,

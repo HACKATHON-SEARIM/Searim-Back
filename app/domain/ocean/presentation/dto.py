@@ -97,6 +97,8 @@ class OceanListItemResponse(BaseModel):
 
     ocean_id: int = Field(..., description="해양 ID")
     ocean_name: str = Field(..., description="해양 이름")
+    lat: float = Field(..., description="위도")
+    lon: float = Field(..., description="경도")
     region: str = Field(..., description="시/도")
     detail: str = Field(..., description="구/군")
     current_price: int = Field(..., description="현재 가격 (1평당)")
@@ -108,6 +110,8 @@ class OceanListItemResponse(BaseModel):
             "example": {
                 "ocean_id": 1,
                 "ocean_name": "동해",
+                "lat": 37.7519,
+                "lon": 128.8761,
                 "region": "강원도",
                 "detail": "강릉시",
                 "current_price": 1200,

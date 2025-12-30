@@ -62,6 +62,8 @@ class OceanResponse(BaseModel):
 
     ocean_id: int = Field(..., description="해양 ID")
     ocean_name: str = Field(..., description="해양 이름")
+    lat: float = Field(..., description="위도")
+    lon: float = Field(..., description="경도")
     region: str = Field(..., description="지역")
     detail: str = Field(..., description="상세 지역")
     current_price: int = Field(..., description="현재 가격 (1평당)")
@@ -73,6 +75,8 @@ class OceanResponse(BaseModel):
             "example": {
                 "ocean_id": 1,
                 "ocean_name": "부산 앞바다",
+                "lat": 35.1595,
+                "lon": 129.1600,
                 "region": "부산광역시",
                 "detail": "해운대구",
                 "current_price": 1000,
