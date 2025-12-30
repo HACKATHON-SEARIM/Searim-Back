@@ -42,12 +42,13 @@ async def fetch_and_update_articles():
         # 전체 해양 관련 뉴스를 한 번에 검색
         try:
             async with httpx.AsyncClient() as client:
-                # 부산 지역 해양 관련 키워드로 검색
+                # 부산 지역 해양 관련 의미있는 키워드로 검색
                 query_keywords = (
-                    "부산 해양 OR 부산 바다 OR 해운대 OR 광안리 OR "
-                    "송정해수욕장 OR 영도 OR 다대포 OR 기장 OR "
-                    "오륙도 OR 수영만 OR 부산항 OR 해양환경 OR "
-                    "수질 OR 해수욕장"
+                    "(부산 OR 해운대 OR 광안리 OR 송정 OR 영도 OR 다대포 OR 기장 OR 오륙도 OR 수영만 OR 부산항) "
+                    "AND "
+                    "(해양 OR 수질 OR 바다 OR 해수욕장 OR 해양오염 OR 해양환경 OR 해양보호 OR "
+                    "수질개선 OR 해양쓰레기 OR 해양생태 OR 해양보전 OR 적조 OR 녹조 OR "
+                    "해양관리 OR 수산 OR 어업 OR 해양생물 OR 해수 OR 연안)"
                 )
 
                 response = await client.get(
@@ -92,21 +93,37 @@ async def fetch_and_update_articles():
                     matched_keyword = None
                     full_text = (title + " " + description).lower()
 
+                    # 해양 관련 키워드가 있는지 먼저 확인 (필터링)
+                    ocean_keywords = ["해양", "바다", "수질", "해수욕장", "해안", "연안", "항구", "어업", "수산"]
+                    has_ocean_context = any(kw in full_text for kw in ocean_keywords)
+
+                    if not has_ocean_context:
+                        # 해양과 무관한 기사는 스킵
+                        continue
+
                     # 각 해양에 대해 키워드 매칭 시도
                     for ocean in oceans:
                         # 해양 이름에서 키워드 추출
                         ocean_name_clean = ocean.ocean_name.replace(" 앞바다", "").replace(" 해역", "").strip()
 
-                        # 여러 키워드 생성 (예: "해운대 앞바다" -> ["해운대", "해운대 앞바다"])
-                        keywords = [ocean_name_clean, ocean.ocean_name]
+                        # 여러 키워드 생성
+                        keywords = []
 
-                        # 추가 키워드 (예: "부산 앞바다" -> ["부산항", "부산"])
+                        # 1. 전체 해양 이름
+                        keywords.append(ocean.ocean_name)
+
+                        # 2. 공백 제거한 이름
+                        keywords.append(ocean_name_clean)
+
+                        # 3. 공백으로 분리된 각 단어 (3글자 이상만)
                         if " " in ocean_name_clean:
-                            keywords.extend(ocean_name_clean.split())
+                            for word in ocean_name_clean.split():
+                                if len(word) >= 3:  # 3글자 이상만
+                                    keywords.append(word)
 
                         # 키워드가 제목이나 내용에 있는지 확인
                         for keyword in keywords:
-                            if len(keyword) >= 2 and keyword in full_text:
+                            if keyword in full_text:
                                 matched_ocean = ocean
                                 matched_keyword = keyword
                                 break
