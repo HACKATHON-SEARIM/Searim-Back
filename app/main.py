@@ -36,6 +36,30 @@ async def lifespan(app: FastAPI):
     # 시작 시 실행
     init_db()
 
+    # 서버 시작 시 백그라운드 작업 즉시 한 번 실행
+    print("🚀 서버 시작 시 백그라운드 작업 초기 실행 중...")
+
+    try:
+        await fetch_and_update_articles()
+        print("✅ 기사 수집 완료")
+    except Exception as e:
+        print(f"⚠️  기사 수집 오류: {e}")
+
+    try:
+        await update_ocean_prices_by_garbage()
+        print("✅ 쓰레기 수집 기반 시세 업데이트 완료")
+    except Exception as e:
+        print(f"⚠️  쓰레기 수집 기반 시세 업데이트 오류: {e}")
+
+    try:
+        await fetch_and_update_ocean_data()
+        print("✅ 해양 관측소 데이터 수집 완료")
+    except Exception as e:
+        print(f"⚠️  해양 관측소 데이터 수집 오류: {e}")
+
+    # generate_building_income은 매 초마다 실행되므로 초기 실행 생략
+    print("✅ 초기 백그라운드 작업 완료\n")
+
     # 백그라운드 작업 스케줄링
     # 1. 주기적으로 기사 수집 및 시세 업데이트 (1시간마다)
     scheduler.add_job(
@@ -70,6 +94,7 @@ async def lifespan(app: FastAPI):
     )
 
     scheduler.start()
+    print("📅 백그라운드 작업 스케줄러 시작됨\n")
 
     yield
 
