@@ -1,11 +1,15 @@
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
-from fastapi import Depends, Header
+from fastapi import Depends
+from fastapi.security import OAuth2PasswordBearer
 from app.config import get_settings
 from app.core.exception.base import UnauthorizedException
 
 settings = get_settings()
+
+# OAuth2 스킴 정의
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
@@ -52,15 +56,15 @@ def decode_access_token(token: str) -> dict:
         raise UnauthorizedException("Invalid token")
 
 
-async def get_current_user_id(authorization: str = Header(...)) -> str:
+async def get_current_user_id(token: str = Depends(oauth2_scheme)) -> str:
     """
     현재 로그인한 사용자 ID 가져오기
 
     FastAPI의 Depends에서 사용됩니다.
-    Authorization 헤더에서 Bearer 토큰을 추출하고 검증합니다.
+    OAuth2PasswordBearer를 통해 Authorization 헤더에서 Bearer 토큰을 자동으로 추출하고 검증합니다.
 
     Args:
-        authorization: Authorization 헤더 (Bearer <token>)
+        token: OAuth2PasswordBearer가 자동으로 추출한 JWT 토큰
 
     Returns:
         사용자 ID
@@ -68,10 +72,6 @@ async def get_current_user_id(authorization: str = Header(...)) -> str:
     Raises:
         UnauthorizedException: 토큰이 없거나 유효하지 않을 때
     """
-    if not authorization.startswith("Bearer "):
-        raise UnauthorizedException("Invalid authorization header")
-
-    token = authorization.replace("Bearer ", "")
     payload = decode_access_token(token)
 
     user_id = payload.get("sub")
