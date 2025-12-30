@@ -273,8 +273,8 @@ async def generate_building_income():
         buildings = db.query(Building).all()
 
         if not buildings:
-            print("💤 수익금 지급 스킵: 건물이 없습니다.")
-            return  # 건물이 없으면 종료
+            # 건물이 없으면 조용히 종료
+            return
 
         now = datetime.utcnow()
         total_income_distributed = 0
@@ -317,8 +317,9 @@ async def generate_building_income():
 
         db.commit()
 
-        print(f"✅ 수익금 지급 완료: 총 {total_income_distributed:,} 크레딧 지급 "
-              f"({income_count}개 건물, {initialized_count}개 초기화)\n")
+        if income_count > 0 or initialized_count > 0:
+            print(f"✅ 수익금 지급 완료: 총 {total_income_distributed:,} 크레딧 지급 "
+                  f"({income_count}개 건물, {initialized_count}개 초기화)\n")
 
     except Exception as e:
         print(f"❌ 수익금 지급 오류: {e}")
