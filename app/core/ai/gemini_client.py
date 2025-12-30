@@ -19,7 +19,7 @@ class GeminiClient:
     """
 
     def __init__(self):
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
+        self.model = genai.GenerativeModel('gemini-2.0-flash')
 
     async def verify_garbage_image(self, image_bytes: bytes) -> bool:
         """

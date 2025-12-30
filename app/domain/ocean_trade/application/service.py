@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from typing import List, Tuple
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.domain.ocean_trade.domain.repository import OceanTradeRepository
 from app.domain.ocean_trade.domain.entity import (
     OceanSale,
@@ -163,12 +163,16 @@ class OceanTradeService:
         # 시작 가격 계산 (현재 시세의 80%)
         starting_price = int(ocean.current_price * square_meters * 0.8)
 
+        # 경매 종료 시간 계산 (10분 후)
+        end_time = datetime.now() + timedelta(minutes=10)
+
         # 경매 등록
         auction = self.repository.create_auction(
             ocean_id=ocean_id,
             seller_id=seller_username,
             square_meters=square_meters,
-            starting_price=starting_price
+            starting_price=starting_price,
+            end_time=end_time
         )
 
         # 경매 등록 시 소유권 차감

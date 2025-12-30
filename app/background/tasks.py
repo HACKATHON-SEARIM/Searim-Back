@@ -461,3 +461,98 @@ async def fetch_and_update_ocean_data():
         db.rollback()
     finally:
         db.close()
+
+
+async def finalize_expired_auctions():
+    """
+    종료 시간이 지난 경매를 자동으로 종료하고 크레딧을 이동합니다.
+
+    1. end_time이 지난 ACTIVE 상태의 경매를 찾습니다.
+    2. 입찰이 있는 경매만 종료 처리합니다.
+    3. 최고 입찰자에게 크레딧을 차감하고 판매자에게 지급합니다.
+    4. 소유권을 최고 입찰자에게 이전합니다.
+    5. 경매 상태를 SOLD로 변경합니다.
+    """
+    db: Session = SessionLocal()
+
+    try:
+        from app.domain.ocean_trade.domain.repository import OceanTradeRepository
+        from app.domain.ocean_trade.domain.entity import AuctionStatus
+        from app.domain.auth.domain.repository import UserRepository
+
+        repository = OceanTradeRepository(db)
+        user_repository = UserRepository(db)
+
+        # 종료 시간이 지난 경매 조회
+        expired_auctions = repository.find_expired_auctions()
+
+        for auction in expired_auctions:
+            try:
+                # 최고 입찰 조회
+                highest_bid = repository.find_highest_bid(auction.id)
+
+                if not highest_bid:
+                    # 입찰이 없으면 경매 취소 처리 및 소유권 복구
+                    auction.status = AuctionStatus.CANCELLED
+                    auction.ended_at = datetime.now()
+
+                    # 소유권 복구
+                    ownership = repository.find_ownership_by_user_and_ocean(
+                        auction.seller_id, auction.ocean_id
+                    )
+                    if ownership:
+                        repository.update_ownership_square_meters(
+                            ownership, ownership.square_meters + auction.square_meters
+                        )
+                    else:
+                        repository.create_ownership(
+                            user_id=auction.seller_id,
+                            ocean_id=auction.ocean_id,
+                            square_meters=auction.square_meters
+                        )
+
+                    print(f"⚠️ 경매 {auction.id}: 입찰이 없어 취소 처리되었습니다.")
+                    continue
+
+                # 크레딧 처리
+                bidder = user_repository.find_by_username(highest_bid.bidder_id)
+                seller = user_repository.find_by_username(auction.seller_id)
+
+                if bidder:
+                    bidder.credits -= highest_bid.bid_amount
+                if seller:
+                    seller.credits += highest_bid.bid_amount
+
+                # 소유권 이전
+                ownership = repository.find_ownership_by_user_and_ocean(
+                    highest_bid.bidder_id, auction.ocean_id
+                )
+                if ownership:
+                    repository.update_ownership_square_meters(
+                        ownership, ownership.square_meters + auction.square_meters
+                    )
+                else:
+                    repository.create_ownership(
+                        user_id=highest_bid.bidder_id,
+                        ocean_id=auction.ocean_id,
+                        square_meters=auction.square_meters
+                    )
+
+                # 경매 상태 업데이트
+                auction.status = AuctionStatus.SOLD
+                auction.winner_id = highest_bid.bidder_id
+                auction.ended_at = datetime.now()
+
+                print(f"✅ 경매 {auction.id} 자동 종료: 낙찰자 {highest_bid.bidder_id}, 금액 {highest_bid.bid_amount}")
+
+            except Exception as e:
+                print(f"경매 {auction.id} 종료 처리 오류: {e}")
+                continue
+
+        db.commit()
+
+    except Exception as e:
+        print(f"경매 자동 종료 작업 오류: {e}")
+        db.rollback()
+    finally:
+        db.close()

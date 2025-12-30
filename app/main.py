@@ -10,7 +10,8 @@ from app.background.tasks import (
     fetch_and_update_articles,
     update_ocean_prices_by_garbage,
     generate_building_income,
-    fetch_and_update_ocean_data
+    fetch_and_update_ocean_data,
+    finalize_expired_auctions
 )
 
 # 도메인별 라우터 import
@@ -105,6 +106,14 @@ async def lifespan(app: FastAPI):
         'interval',
         minutes=settings.OCEAN_DATA_FETCH_INTERVAL_MINUTES,
         id='fetch_ocean_data'
+    )
+
+    # 5. 경매 자동 종료 (1분마다)
+    scheduler.add_job(
+        finalize_expired_auctions,
+        'interval',
+        minutes=1,
+        id='finalize_expired_auctions'
     )
 
     scheduler.start()

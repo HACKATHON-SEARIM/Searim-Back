@@ -175,50 +175,6 @@ def register_auction(
 
 
 @router.post(
-    "/sale/{sale_id}/purchase",
-    response_model=PurchaseResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="판매 등록된 해양 구매",
-    description="등록된 판매 해양을 구매합니다. 크레딧이 차감되고 해양 소유권이 이전됩니다."
-)
-def purchase_from_sale(
-    sale_id: int,
-    db: Session = Depends(get_db),
-    current_username: str = Depends(get_current_username)
-) -> PurchaseResponse:
-    """
-    판매 등록된 해양 구매 엔드포인트
-
-    Args:
-        sale_id: 판매 ID
-        db: 데이터베이스 세션
-        current_username: 현재 로그인한 사용자 이름 (JWT에서 추출)
-
-    Returns:
-        PurchaseResponse: 구매 결과 및 소유권 정보
-
-    Raises:
-        HTTPException 404: 판매를 찾을 수 없는 경우
-        HTTPException 400: 해양 소유자와 동일하거나 크레딧이 부족한 경우
-    """
-    service = OceanTradeService(db)
-    ownership, sale = service.purchase_from_sale(
-        sale_id=sale_id,
-        buyer_username=current_username
-    )
-
-    # 사용자 크레딧 조회
-    user_repository = UserRepository(db)
-    user = user_repository.find_by_username(current_username)
-
-    return PurchaseResponse(
-        message="판매 등록된 해양 구매에 성공하였습니다.",
-        ownership=OwnershipResponse.model_validate(ownership),
-        remaining_credits=user.credits
-    )
-
-
-@router.post(
     "/auction/{auction_id}/bid",
     response_model=BidResponse,
     status_code=status.HTTP_201_CREATED,
@@ -257,41 +213,44 @@ def bid_on_auction(
 
 
 @router.post(
-    "/auction/{auction_id}/finalize",
+    "/sale/{sale_id}/purchase",
     response_model=PurchaseResponse,
-    status_code=status.HTTP_200_OK,
-    summary="경매 종료",
-    description="경매를 종료하고 최고 입찰자에게 소유권을 이전합니다. (판매자만 호출 가능)"
+    status_code=status.HTTP_201_CREATED,
+    summary="판매 등록된 해양 구매",
+    description="등록된 판매 해양을 구매합니다. 크레딧이 차감되고 해양 소유권이 이전됩니다."
 )
-def finalize_auction(
-    auction_id: int,
+def purchase_from_sale(
+    sale_id: int,
     db: Session = Depends(get_db),
     current_username: str = Depends(get_current_username)
 ) -> PurchaseResponse:
     """
-    경매 종료 엔드포인트
+    판매 등록된 해양 구매 엔드포인트
 
     Args:
-        auction_id: 경매 ID
+        sale_id: 판매 ID
         db: 데이터베이스 세션
         current_username: 현재 로그인한 사용자 이름 (JWT에서 추출)
 
     Returns:
-        PurchaseResponse: 입찰 결과 및 소유권 정보
+        PurchaseResponse: 구매 결과 및 소유권 정보
 
     Raises:
-        HTTPException 404: 경매를 찾을 수 없는 경우
-        HTTPException 400: 경매가 이미 종료되었거나 입찰이 없는 경우
+        HTTPException 404: 판매를 찾을 수 없는 경우
+        HTTPException 400: 해양 소유자와 동일하거나 크레딧이 부족한 경우
     """
     service = OceanTradeService(db)
-    ownership, auction = service.finalize_auction(auction_id=auction_id)
+    ownership, sale = service.purchase_from_sale(
+        sale_id=sale_id,
+        buyer_username=current_username
+    )
 
-    # 입찰자의 사용자 크레딧 조회
+    # 사용자 크레딧 조회
     user_repository = UserRepository(db)
-    user = user_repository.find_by_username(ownership.user_id)
+    user = user_repository.find_by_username(current_username)
 
     return PurchaseResponse(
-        message="경매가 종료되었습니다.",
+        message="판매 등록된 해양 구매에 성공하였습니다.",
         ownership=OwnershipResponse.model_validate(ownership),
         remaining_credits=user.credits
     )

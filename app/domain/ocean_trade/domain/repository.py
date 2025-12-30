@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from datetime import datetime
 from app.domain.ocean_trade.domain.entity import OceanSale, OceanAuction, AuctionBid, SaleStatus, AuctionStatus
 from app.domain.ocean.domain.entity import Ocean
 from app.domain.ocean_management.domain.entity import OceanOwnership
@@ -119,7 +120,8 @@ class OceanTradeRepository:
         ocean_id: int,
         seller_id: str,
         square_meters: int,
-        starting_price: int
+        starting_price: int,
+        end_time: datetime
     ) -> OceanAuction:
         """경매를 등록합니다."""
         auction = OceanAuction(
@@ -128,7 +130,8 @@ class OceanTradeRepository:
             square_meters=square_meters,
             starting_price=starting_price,
             current_price=starting_price,
-            status=AuctionStatus.ACTIVE
+            status=AuctionStatus.ACTIVE,
+            end_time=end_time
         )
         self.db.add(auction)
         self.db.commit()
@@ -138,6 +141,18 @@ class OceanTradeRepository:
     def find_auction_by_id(self, auction_id: int) -> Optional[OceanAuction]:
         """경매 ID로 경매를 조회합니다."""
         return self.db.query(OceanAuction).filter(OceanAuction.id == auction_id).first()
+
+    def find_expired_auctions(self) -> List[OceanAuction]:
+        """종료 시간이 지난 활성 경매 목록을 조회합니다."""
+        now = datetime.now()
+        return (
+            self.db.query(OceanAuction)
+            .filter(
+                OceanAuction.status == AuctionStatus.ACTIVE,
+                OceanAuction.end_time <= now
+            )
+            .all()
+        )
 
     def update_auction_current_price(
         self, auction: OceanAuction, current_price: int

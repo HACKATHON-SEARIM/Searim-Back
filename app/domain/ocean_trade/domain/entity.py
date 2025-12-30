@@ -50,6 +50,7 @@ class OceanAuction(Base):
     current_price = Column(Integer, nullable=False, comment="현재 최고 입찰가")
     status = Column(SQLEnum(AuctionStatus), default=AuctionStatus.ACTIVE, nullable=False, comment="경매 상태")
     created_at = Column(DateTime(timezone=True), server_default=func.now(), comment="등록 일시")
+    end_time = Column(DateTime(timezone=True), nullable=False, comment="경매 종료 예정 시간 (등록 후 10분)")
     ended_at = Column(DateTime(timezone=True), nullable=True, comment="경매 종료 일시")
     winner_id = Column(String(50), ForeignKey("users.user_id"), nullable=True, comment="낙찰자 ID")
 

@@ -27,6 +27,7 @@ class ArticleResponse(BaseModel):
                 "ocean_name": "태안해수욕장",
                 "title": "태안해수욕장, 수질 개선으로 관광객 증가",
                 "url": "https://example.com/article/1",
+                "image_url": "https://example.com/images/article1.jpg",
                 "sentiment": "positive",
                 "price_change": 500,
                 "created_at": "2025-12-30T10:00:00"
@@ -53,6 +54,7 @@ class OceanArticlesResponse(BaseModel):
                         "ocean_name": "태안해수욕장",
                         "title": "태안해수욕장, 수질 개선으로 관광객 증가",
                         "url": "https://example.com/article/1",
+                        "image_url": "https://example.com/images/article1.jpg",
                         "sentiment": "positive",
                         "price_change": 500,
                         "created_at": "2025-12-30T10:00:00"
@@ -81,6 +83,7 @@ class ArticleListResponse(BaseModel):
                                 "ocean_name": "태안해수욕장",
                                 "title": "태안해수욕장, 수질 개선으로 관광객 증가",
                                 "url": "https://example.com/article/1",
+                                "image_url": "https://example.com/images/article1.jpg",
                                 "sentiment": "positive",
                                 "price_change": 500,
                                 "created_at": "2025-12-30T10:00:00"
@@ -97,6 +100,7 @@ class ArticleListResponse(BaseModel):
                                 "ocean_name": "부산 해운대해수욕장",
                                 "title": "해운대해수욕장 해양 쓰레기 문제 심각",
                                 "url": "https://example.com/article/2",
+                                "image_url": "https://example.com/images/article2.jpg",
                                 "sentiment": "negative",
                                 "price_change": -300,
                                 "created_at": "2025-12-30T09:30:00"
