@@ -31,6 +31,25 @@ class OceanTradeService:
         """구매 가능한 해양 목록을 조회합니다."""
         return self.repository.find_all_oceans(region=region, detail=detail)
 
+    def get_auctionable_oceans(
+        self,
+        region: str = None,
+        detail: str = None
+    ) -> List[Ocean]:
+        """경매 가능한 해양 목록을 조회합니다."""
+        auctions = self.repository.find_active_auctions(region=region, detail=detail)
+        ocean_ids = [auction.ocean_id for auction in auctions]
+
+        # 중복 제거하고 Ocean 정보 조회
+        unique_ocean_ids = list(set(ocean_ids))
+        oceans = []
+        for ocean_id in unique_ocean_ids:
+            ocean = self.repository.find_ocean_by_id(ocean_id)
+            if ocean:
+                oceans.append(ocean)
+
+        return oceans
+
     def purchase_ocean(
         self,
         ocean_id: int,

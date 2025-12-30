@@ -142,6 +142,25 @@ class OceanTradeRepository:
         """경매 ID로 경매를 조회합니다."""
         return self.db.query(OceanAuction).filter(OceanAuction.id == auction_id).first()
 
+    def find_active_auctions(
+        self,
+        region: Optional[str] = None,
+        detail: Optional[str] = None
+    ) -> List[OceanAuction]:
+        """활성 경매 목록을 조회합니다."""
+        query = (
+            self.db.query(OceanAuction)
+            .join(Ocean, OceanAuction.ocean_id == Ocean.ocean_id)
+            .filter(OceanAuction.status == AuctionStatus.ACTIVE)
+        )
+
+        if region:
+            query = query.filter(Ocean.region == region)
+        if detail:
+            query = query.filter(Ocean.detail == detail)
+
+        return query.all()
+
     def find_expired_auctions(self) -> List[OceanAuction]:
         """종료 시간이 지난 활성 경매 목록을 조회합니다."""
         now = datetime.now()

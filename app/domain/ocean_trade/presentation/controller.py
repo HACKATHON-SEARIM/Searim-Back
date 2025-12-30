@@ -51,6 +51,36 @@ def get_purchasable_oceans(
     return [OceanResponse.model_validate(ocean) for ocean in oceans]
 
 
+@router.get(
+    "/auction",
+    response_model=List[OceanResponse],
+    status_code=status.HTTP_200_OK,
+    summary="경매 가능한 해양 목록 조회",
+    description="경매 중인 해양 목록을 조회합니다. 지역(region) 및 세부 지역(detail)으로 필터링할 수 있습니다."
+)
+def get_auctionable_oceans(
+    region: Optional[str] = Query(None, description="지역 필터 (시/도)"),
+    detail: Optional[str] = Query(None, description="세부 지역 필터 (시/군/구)"),
+    db: Session = Depends(get_db),
+    current_username: str = Depends(get_current_username)
+) -> List[OceanResponse]:
+    """
+    경매 가능한 해양 목록 조회 엔드포인트
+
+    Args:
+        region: 지역 필터 (시/도)
+        detail: 세부 지역 필터 (시/군/구)
+        db: 데이터베이스 세션
+        current_username: 현재 로그인한 사용자 이름 (JWT에서 추출)
+
+    Returns:
+        List[OceanResponse]: 경매 중인 해양 목록
+    """
+    service = OceanTradeService(db)
+    oceans = service.get_auctionable_oceans(region=region, detail=detail)
+    return [OceanResponse.model_validate(ocean) for ocean in oceans]
+
+
 @router.post(
     "/{ocean_id}/purchase",
     response_model=PurchaseResponse,
