@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.domain.article.domain.entity import Article, ArticleSentiment
-from app.domain.ocean.domain.entity import Ocean, WaterQuality
+from app.domain.ocean.domain.entity import Ocean, WaterQuality, WaterQualityStatus
 from app.domain.ocean_management.domain.entity import Building, BuildingType
 from app.domain.auth.domain.entity import User
 from app.config import get_settings
@@ -65,7 +65,7 @@ async def fetch_and_update_articles():
                 matched_count = 0
                 for article_data in articles_data:
                     url = article_data.get("url")
-                    title = article_data.get("title")
+                    title = article_data.get("title") or ""
                     description = article_data.get("description", "")
                     content = article_data.get("content", "")
                     image_url = article_data.get("urlToImage")
@@ -78,14 +78,31 @@ async def fetch_and_update_articles():
                     if existing:
                         continue
 
-                    # 제목에 해양 이름이 포함되어 있는지 확인
+                    # 제목과 내용에서 해양 이름 매칭 확인
                     matched_ocean = None
-                    for ocean in oceans:
-                        # 해양 이름의 주요 키워드 추출 (예: "해운대 앞바다" -> "해운대")
-                        ocean_keywords = ocean.ocean_name.replace(" 앞바다", "").replace(" 해역", "").replace("만", "")
+                    matched_keyword = None
+                    full_text = (title + " " + description).lower()
 
-                        if ocean_keywords in title:
-                            matched_ocean = ocean
+                    # 각 해양에 대해 키워드 매칭 시도
+                    for ocean in oceans:
+                        # 해양 이름에서 키워드 추출
+                        ocean_name_clean = ocean.ocean_name.replace(" 앞바다", "").replace(" 해역", "").strip()
+
+                        # 여러 키워드 생성 (예: "해운대 앞바다" -> ["해운대", "해운대 앞바다"])
+                        keywords = [ocean_name_clean, ocean.ocean_name]
+
+                        # 추가 키워드 (예: "부산 앞바다" -> ["부산항", "부산"])
+                        if " " in ocean_name_clean:
+                            keywords.extend(ocean_name_clean.split())
+
+                        # 키워드가 제목이나 내용에 있는지 확인
+                        for keyword in keywords:
+                            if len(keyword) >= 2 and keyword in full_text:
+                                matched_ocean = ocean
+                                matched_keyword = keyword
+                                break
+
+                        if matched_ocean:
                             break
 
                     # 매칭되는 해양이 없으면 스킵
@@ -93,7 +110,7 @@ async def fetch_and_update_articles():
                         continue
 
                     matched_count += 1
-                    print(f"  ✅ 기사 매칭: [{matched_ocean.ocean_name}] {title[:50]}...")
+                    print(f"  ✅ 기사 매칭: [{matched_ocean.ocean_name}] 키워드: '{matched_keyword}' | {title[:40]}...")
 
                     # 기사 내용 준비 (description이나 content 사용)
                     article_content = description or content or ""
@@ -326,7 +343,8 @@ async def fetch_and_update_ocean_data():
                 if closest_station and min_distance < 200:  # 200km 이내로 범위 확대
                     matched_ocean_count += 1
                     station_name = closest_station.get("관측소 명", "알 수 없음")
-                    print(f"  ✅ [{ocean.ocean_name}] 관측소 매칭: {station_name} (거리: {min_distance:.1f}km)")
+                    ocean_name_display = ocean.ocean_name if ocean.ocean_name else "이름없음"
+                    print(f"  ✅ [{ocean_name_display}] 관측소 매칭: {station_name} (거리: {min_distance:.1f}km)")
 
                     # 관측소 유형에 따라 가격 변동
                     station_type = closest_station.get("관측소 유형", "")
@@ -351,22 +369,27 @@ async def fetch_and_update_ocean_data():
                     ).first()
 
                     if not water_quality:
-                        # 새로운 수질 데이터 생성
+                        # 새로운 수질 데이터 생성 (기본값 사용)
                         water_quality = WaterQuality(
                             ocean_id=ocean.ocean_id,
-                            temperature=20.0,  # 기본값
-                            ph=8.0,  # 기본값
-                            dissolved_oxygen=7.0,  # 기본값
-                            salinity=35.0,  # 기본값
-                            pollution_level="GOOD",
-                            observation_station=closest_station.get("관측소 명"),
-                            station_code=closest_station.get("관측소 코드명")
+                            dissolved_oxygen_value=8.0,  # 기본값 (mg/L)
+                            dissolved_oxygen_status=WaterQualityStatus.NORMAL,
+                            ph_value=8.1,  # 기본값
+                            ph_status=WaterQualityStatus.NORMAL,
+                            nitrogen_value=0.3,  # 기본값 (mg/L)
+                            nitrogen_status=WaterQualityStatus.NORMAL,
+                            phosphorus_value=0.02,  # 기본값 (mg/L)
+                            phosphorus_status=WaterQualityStatus.NORMAL,
+                            turbidity_value=1.5,  # 기본값 (NTU)
+                            turbidity_status=WaterQualityStatus.NORMAL,
+                            heavy_metals_detected=0,
+                            oil_spill_detected=0,
+                            price_change=price_change
                         )
                         db.add(water_quality)
                     else:
-                        # 기존 수질 데이터 업데이트
-                        water_quality.observation_station = closest_station.get("관측소 명")
-                        water_quality.station_code = closest_station.get("관측소 코드명")
+                        # 기존 수질 데이터 업데이트 (가격 변동만)
+                        water_quality.price_change += price_change
                         water_quality.measured_at = datetime.utcnow()
 
             db.commit()
