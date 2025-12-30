@@ -11,7 +11,7 @@ class ArticleResponse(BaseModel):
     ocean_id: int = Field(..., description="해양 ID")
     ocean_name: str = Field(..., description="해양 이름")
     title: str = Field(..., description="기사 제목")
-    content: str | None = Field(None, description="기사 내용 (요약)")
+    # content: str | None = Field(None, description="기사 내용 (요약)")  # 임시 제거
     url: str = Field(..., description="기사 URL")
     image_url: str | None = Field(None, description="기사 이미지 URL")
     sentiment: ArticleSentiment = Field(..., description="기사 감성 (positive/negative/neutral)")

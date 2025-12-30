@@ -122,6 +122,54 @@ class GeminiClient:
             print(f"Gemini API 오류: {e}")
             return False
 
+    async def analyze_article_sentiment(self, ocean_name: str, article_title: str, article_content: str) -> str:
+        """
+        기사 내용을 분석하여 해당 해양에 대한 감성을 판단합니다.
+
+        Args:
+            ocean_name: 해양 이름 (예: "해운대 앞바다")
+            article_title: 기사 제목
+            article_content: 기사 내용
+
+        Returns:
+            str: "positive" (긍정), "negative" (부정), "neutral" (중립)
+        """
+        try:
+            # Gemini에게 감성 분석 요청
+            prompt = f"""
+            다음 기사가 "{ocean_name}" 해양 지역에 대해 긍정적인지, 부정적인지, 중립적인지 판단해주세요.
+
+            기사 제목: {article_title}
+            기사 내용: {article_content[:500]}
+
+            판단 기준:
+            - 긍정적: 수질 개선, 환경 보호, 관광 활성화, 생태계 회복, 투자, 개발 등
+            - 부정적: 오염, 쓰레기, 환경 파괴, 적조, 사고, 피해 등
+            - 중립적: 단순 정보 전달, 통계, 일반 소식 등
+
+            다음 중 하나로만 답변해주세요:
+            - "positive": 해양에 긍정적인 영향
+            - "negative": 해양에 부정적인 영향
+            - "neutral": 중립적이거나 판단 불가
+
+            답변은 반드시 하나의 단어만 출력하세요 (positive, negative, neutral 중 하나).
+            """
+
+            response = self.model.generate_content(prompt)
+            result = response.text.strip().lower()
+
+            # 결과 검증
+            if "positive" in result:
+                return "positive"
+            elif "negative" in result:
+                return "negative"
+            else:
+                return "neutral"
+
+        except Exception as e:
+            print(f"Gemini 감성 분석 오류: {e}")
+            return "neutral"  # 오류 시 중립으로 처리
+
     async def generate_mission(self) -> Optional[Dict]:
         """
         AI를 사용하여 새로운 해양 관련 미션을 생성합니다.

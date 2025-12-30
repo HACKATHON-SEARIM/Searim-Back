@@ -20,7 +20,7 @@ class Article(Base):
     ocean_id = Column(Integer, ForeignKey("oceans.ocean_id"), nullable=False, index=True, comment="해양 ID")
     ocean_name = Column(String(100), nullable=False, comment="해양 이름")
     title = Column(String(500), nullable=False, comment="기사 제목")
-    content = Column(String(2000), comment="기사 내용 (요약)")
+    # content = Column(String(2000), comment="기사 내용 (요약)")  # 임시 제거 - DB에 컬럼 없음
     url = Column(String(500), nullable=False, unique=True, comment="기사 URL")
     image_url = Column(String(500), comment="기사 이미지 URL")
     sentiment = Column(

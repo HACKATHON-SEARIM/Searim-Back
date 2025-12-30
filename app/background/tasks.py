@@ -140,11 +140,22 @@ async def fetch_and_update_articles():
 
                     # 기사 내용 준비 (description이나 content 사용)
                     article_content = description or content or ""
-                    if len(article_content) > 2000:
-                        article_content = article_content[:2000]
 
-                    # 기사 내용 기반 감성 분석
-                    sentiment = analyze_article_sentiment(title, article_content)
+                    # Gemini AI로 감성 분석
+                    from app.core.ai.gemini_client import gemini_client
+                    sentiment_str = await gemini_client.analyze_article_sentiment(
+                        ocean_name=matched_ocean.ocean_name,
+                        article_title=title,
+                        article_content=article_content
+                    )
+
+                    # 문자열을 Enum으로 변환
+                    if sentiment_str == "positive":
+                        sentiment = ArticleSentiment.POSITIVE
+                    elif sentiment_str == "negative":
+                        sentiment = ArticleSentiment.NEGATIVE
+                    else:
+                        sentiment = ArticleSentiment.NEUTRAL
 
                     # 가격 변동량 계산
                     price_change = 0
@@ -153,12 +164,12 @@ async def fetch_and_update_articles():
                     elif sentiment == ArticleSentiment.NEGATIVE:
                         price_change = -150  # 부정 기사: -150
 
-                    # 기사 저장
+                    # 기사 저장 (content 필드 제외 - DB에 컬럼 없음)
                     new_article = Article(
                         ocean_id=matched_ocean.ocean_id,
                         ocean_name=matched_ocean.ocean_name,
                         title=title,
-                        content=article_content,
+                        # content=article_content,  # 임시 제거
                         url=url,
                         image_url=image_url,
                         sentiment=sentiment,
@@ -185,41 +196,15 @@ async def fetch_and_update_articles():
         db.close()
 
 
-def analyze_article_sentiment(title: str, content: str) -> ArticleSentiment:
-    """
-    기사 제목과 내용을 기반으로 감성 분석 (키워드 기반)
-
-    Args:
-        title: 기사 제목
-        content: 기사 내용
-
-    Returns:
-        ArticleSentiment: 긍정/부정/중립
-    """
-    positive_keywords = [
-        "보존", "개선", "깨끗", "회복", "성공", "발전", "증가", "좋은",
-        "활성화", "성장", "청정", "아름다운", "안전", "보호", "쾌적",
-        "개발", "투자", "관광", "축제", "활기", "번창"
-    ]
-    negative_keywords = [
-        "오염", "위험", "감소", "파괴", "악화", "문제", "피해",
-        "쓰레기", "사고", "폐기물", "유출", "적조", "녹조", "침식",
-        "폐쇄", "금지", "손실", "훼손", "취약", "우려"
-    ]
-
-    # 제목과 내용을 합쳐서 분석
-    full_text = (title + " " + content).lower()
-
-    positive_count = sum(1 for keyword in positive_keywords if keyword in full_text)
-    negative_count = sum(1 for keyword in negative_keywords if keyword in full_text)
-
-    # 더 강한 가중치로 판단
-    if positive_count > negative_count:
-        return ArticleSentiment.POSITIVE
-    elif negative_count > positive_count:
-        return ArticleSentiment.NEGATIVE
-    else:
-        return ArticleSentiment.NEUTRAL
+# 기존 키워드 기반 감성 분석 함수 (사용 안 함 - Gemini AI로 대체)
+# def analyze_article_sentiment(title: str, content: str) -> ArticleSentiment:
+#     """
+#     기사 제목과 내용을 기반으로 감성 분석 (키워드 기반)
+#     """
+#     positive_keywords = ["보존", "개선", "깨끗", "회복", "성공", ...]
+#     negative_keywords = ["오염", "위험", "감소", "파괴", "악화", ...]
+#     ...
+#     현재는 Gemini AI를 사용하여 더 정확한 감성 분석을 수행합니다.
 
 
 async def update_ocean_prices_by_garbage():
