@@ -7,7 +7,9 @@ from app.config import get_settings
 settings = get_settings()
 
 # MySQL 연결을 위한 추가 인자
-connect_args = {}
+connect_args = {
+    "init_command": "SET time_zone='+09:00'"  # KST 시간대 설정
+}
 
 # MySQL 전용 엔진 설정
 engine = create_engine(

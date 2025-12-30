@@ -12,6 +12,7 @@ import httpx
 import math
 import random
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.domain.article.domain.entity import Article, ArticleSentiment
@@ -276,7 +277,7 @@ async def generate_building_income():
             # 건물이 없으면 조용히 종료
             return
 
-        now = datetime.now()
+        now = datetime.now(ZoneInfo("Asia/Seoul"))
         total_income_distributed = 0
         initialized_count = 0
         income_count = 0
