@@ -19,25 +19,25 @@ class AuthService:
         self.db = db
         self.repository = UserRepository(db)
 
-    def signup(self, user_id: str, password: str) -> str:
+    def signup(self, username: str, password: str) -> str:
         """
         회원가입을 처리합니다.
 
         Args:
-            user_id: 사용자 ID
+            username: 사용자 이름
             password: 비밀번호 (평문)
 
         Returns:
             str: JWT 액세스 토큰
 
         Raises:
-            HTTPException: 중복된 user_id가 존재하는 경우
+            HTTPException: 중복된 username이 존재하는 경우
         """
-        # 중복 user_id 체크
-        if self.repository.exists_by_user_id(user_id):
+        # 중복 username 체크
+        if self.repository.exists_by_username(username):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="이미 존재하는 사용자 ID입니다."
+                detail="이미 존재하는 사용자 이름입니다."
             )
 
         # 비밀번호 해싱
@@ -45,22 +45,22 @@ class AuthService:
 
         # 사용자 생성 (초기 크레딧 10000)
         user = self.repository.create_user(
-            user_id=user_id,
+            username=username,
             password_hash=password_hash,
             credits=settings.INITIAL_CREDITS
         )
 
         # JWT 토큰 생성
-        access_token = self._create_access_token(user_id=user.user_id)
+        access_token = self._create_access_token(username=user.user_id)
 
         return access_token
 
-    def login(self, user_id: str, password: str) -> str:
+    def login(self, username: str, password: str) -> str:
         """
         로그인을 처리합니다.
 
         Args:
-            user_id: 사용자 ID
+            username: 사용자 이름
             password: 비밀번호 (평문)
 
         Returns:
@@ -70,22 +70,22 @@ class AuthService:
             HTTPException: 사용자가 존재하지 않거나 비밀번호가 일치하지 않는 경우
         """
         # 사용자 조회
-        user = self.repository.find_by_user_id(user_id)
+        user = self.repository.find_by_username(username)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="사용자 ID 또는 비밀번호가 올바르지 않습니다."
+                detail="사용자 이름 또는 비밀번호가 올바르지 않습니다."
             )
 
         # 비밀번호 검증
         if not self._verify_password(password, user.password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="사용자 ID 또는 비밀번호가 올바르지 않습니다."
+                detail="사용자 이름 또는 비밀번호가 올바르지 않습니다."
             )
 
         # JWT 토큰 생성
-        access_token = self._create_access_token(user_id=user.user_id)
+        access_token = self._create_access_token(username=user.user_id)
 
         return access_token
 
@@ -114,19 +114,19 @@ class AuthService:
         """
         return pwd_context.verify(plain_password, hashed_password)
 
-    def _create_access_token(self, user_id: str) -> str:
+    def _create_access_token(self, username: str) -> str:
         """
         JWT 액세스 토큰을 생성합니다.
 
         Args:
-            user_id: 사용자 ID
+            username: 사용자 이름
 
         Returns:
             str: JWT 액세스 토큰
         """
         expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         payload = {
-            "sub": user_id,
+            "sub": username,
             "exp": expire
         }
         access_token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)

@@ -4,13 +4,13 @@ from pydantic import BaseModel, Field
 class SignupRequest(BaseModel):
     """회원가입 요청 DTO"""
 
-    user_id: str = Field(..., description="사용자 ID", min_length=1, max_length=50)
+    username: str = Field(..., description="사용자 이름", min_length=1, max_length=50)
     password: str = Field(..., description="비밀번호", min_length=1)
 
     class Config:
         json_schema_extra = {
             "example": {
-                "user_id": "huhon",
+                "username": "huhon",
                 "password": "1234"
             }
         }
@@ -19,13 +19,13 @@ class SignupRequest(BaseModel):
 class LoginRequest(BaseModel):
     """로그인 요청 DTO"""
 
-    user_id: str = Field(..., description="사용자 ID", min_length=1, max_length=50)
+    username: str = Field(..., description="사용자 이름", min_length=1, max_length=50)
     password: str = Field(..., description="비밀번호", min_length=1)
 
     class Config:
         json_schema_extra = {
             "example": {
-                "user_id": "huhon",
+                "username": "huhon",
                 "password": "1234"
             }
         }

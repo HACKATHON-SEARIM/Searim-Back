@@ -56,9 +56,9 @@ def decode_access_token(token: str) -> dict:
         raise UnauthorizedException("Invalid token")
 
 
-async def get_current_user_id(token: str = Depends(oauth2_scheme)) -> str:
+async def get_current_username(token: str = Depends(oauth2_scheme)) -> str:
     """
-    현재 로그인한 사용자 ID 가져오기
+    현재 로그인한 사용자 이름 가져오기
 
     FastAPI의 Depends에서 사용됩니다.
     OAuth2PasswordBearer를 통해 Authorization 헤더에서 Bearer 토큰을 자동으로 추출하고 검증합니다.
@@ -67,15 +67,15 @@ async def get_current_user_id(token: str = Depends(oauth2_scheme)) -> str:
         token: OAuth2PasswordBearer가 자동으로 추출한 JWT 토큰
 
     Returns:
-        사용자 ID
+        사용자 이름
 
     Raises:
         UnauthorizedException: 토큰이 없거나 유효하지 않을 때
     """
     payload = decode_access_token(token)
 
-    user_id = payload.get("sub")
-    if not user_id:
+    username = payload.get("sub")
+    if not username:
         raise UnauthorizedException("Invalid token payload")
 
-    return user_id
+    return username

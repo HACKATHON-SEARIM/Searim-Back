@@ -9,7 +9,7 @@ from app.domain.mission.presentation.dto import (
     MissionCompleteResponse,
     GarbageCollectionResponse
 )
-from app.core.security.jwt import get_current_user_id
+from app.core.security.jwt import get_current_username
 
 router = APIRouter(prefix="/mission", tags=["Mission"])
 
@@ -22,14 +22,14 @@ router = APIRouter(prefix="/mission", tags=["Mission"])
     description="전체 미션 목록과 사용자의 완료 여부를 조회합니다. 인증이 필요합니다."
 )
 async def get_missions(
-    user_id: str = Depends(get_current_user_id),
+    username: str = Depends(get_current_username),
     db: Session = Depends(get_db)
 ) -> MissionListResponse:
     """
     미션 목록 조회 엔드포인트
 
     Args:
-        user_id: 현재 로그인한 사용자 ID (JWT에서 추출)
+        username: 현재 로그인한 사용자 이름 (JWT에서 추출)
         db: 데이터베이스 세션
 
     Returns:
@@ -39,7 +39,7 @@ async def get_missions(
         HTTPException 401: 인증 실패
     """
     service = MissionService(db)
-    missions = service.get_missions(user_id)
+    missions = service.get_missions(username)
 
     # DTO로 변환
     mission_responses = [
@@ -66,7 +66,7 @@ async def get_missions(
 async def complete_mission(
     todo_id: int,
     image: UploadFile = File(..., description="미션 완료 사진"),
-    user_id: str = Depends(get_current_user_id),
+    username: str = Depends(get_current_username),
     db: Session = Depends(get_db)
 ) -> MissionCompleteResponse:
     """
@@ -75,7 +75,7 @@ async def complete_mission(
     Args:
         todo_id: 미션 ID
         image: 미션 완료 사진 (multipart/form-data)
-        user_id: 현재 로그인한 사용자 ID (JWT에서 추출)
+        username: 현재 로그인한 사용자 이름 (JWT에서 추출)
         db: 데이터베이스 세션
 
     Returns:
@@ -87,7 +87,7 @@ async def complete_mission(
         HTTPException 404: 미션을 찾을 수 없음
     """
     service = MissionService(db)
-    result = await service.complete_mission(user_id, todo_id, image)
+    result = await service.complete_mission(username, todo_id, image)
 
     return MissionCompleteResponse(
         message=result["message"],
@@ -107,7 +107,7 @@ async def collect_garbage(
     lat: float = Query(..., description="수집 위치 위도"),
     lon: float = Query(..., description="수집 위치 경도"),
     image: UploadFile = File(..., description="쓰레기 수집 사진"),
-    user_id: str = Depends(get_current_user_id),
+    username: str = Depends(get_current_username),
     db: Session = Depends(get_db)
 ) -> GarbageCollectionResponse:
     """
@@ -117,7 +117,7 @@ async def collect_garbage(
         lat: 수집 위치 위도
         lon: 수집 위치 경도
         image: 쓰레기 수집 사진 (multipart/form-data)
-        user_id: 현재 로그인한 사용자 ID (JWT에서 추출)
+        username: 현재 로그인한 사용자 이름 (JWT에서 추출)
         db: 데이터베이스 세션
 
     Returns:
@@ -129,7 +129,7 @@ async def collect_garbage(
         HTTPException 404: 해양을 찾을 수 없음
     """
     service = MissionService(db)
-    result = await service.collect_garbage(user_id, lat, lon, image)
+    result = await service.collect_garbage(username, lat, lon, image)
 
     return GarbageCollectionResponse(
         message=result["message"],

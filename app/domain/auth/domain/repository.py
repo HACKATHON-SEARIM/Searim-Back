@@ -9,12 +9,12 @@ class UserRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_user(self, user_id: str, password_hash: str, credits: int = 10000) -> User:
+    def create_user(self, username: str, password_hash: str, credits: int = 10000) -> User:
         """
         새로운 사용자를 생성합니다.
 
         Args:
-            user_id: 사용자 ID
+            username: 사용자 이름
             password_hash: 해싱된 비밀번호
             credits: 초기 크레딧 (기본값: 10000)
 
@@ -22,7 +22,7 @@ class UserRepository:
             User: 생성된 사용자 객체
         """
         user = User(
-            user_id=user_id,
+            user_id=username,
             password=password_hash,
             credits=credits
         )
@@ -31,26 +31,26 @@ class UserRepository:
         self.db.refresh(user)
         return user
 
-    def find_by_user_id(self, user_id: str) -> Optional[User]:
+    def find_by_username(self, username: str) -> Optional[User]:
         """
-        사용자 ID로 사용자를 조회합니다.
+        사용자 이름으로 사용자를 조회합니다.
 
         Args:
-            user_id: 사용자 ID
+            username: 사용자 이름
 
         Returns:
             Optional[User]: 조회된 사용자 객체 또는 None
         """
-        return self.db.query(User).filter(User.user_id == user_id).first()
+        return self.db.query(User).filter(User.user_id == username).first()
 
-    def exists_by_user_id(self, user_id: str) -> bool:
+    def exists_by_username(self, username: str) -> bool:
         """
-        사용자 ID가 존재하는지 확인합니다.
+        사용자 이름이 존재하는지 확인합니다.
 
         Args:
-            user_id: 사용자 ID
+            username: 사용자 이름
 
         Returns:
             bool: 존재 여부
         """
-        return self.db.query(User).filter(User.user_id == user_id).count() > 0
+        return self.db.query(User).filter(User.user_id == username).count() > 0

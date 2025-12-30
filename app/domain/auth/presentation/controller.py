@@ -22,18 +22,18 @@ def signup(
     회원가입 엔드포인트
 
     Args:
-        request: 회원가입 요청 (user_id, password)
+        request: 회원가입 요청 (username, password)
         db: 데이터베이스 세션
 
     Returns:
         AuthResponse: JWT 액세스 토큰
 
     Raises:
-        HTTPException 400: 이미 존재하는 사용자 ID인 경우
+        HTTPException 400: 이미 존재하는 사용자 이름인 경우
     """
     service = AuthService(db)
     access_token = service.signup(
-        user_id=request.user_id,
+        username=request.username,
         password=request.password
     )
     return AuthResponse(access_token=access_token)
@@ -54,18 +54,18 @@ def login(
     로그인 엔드포인트
 
     Args:
-        request: 로그인 요청 (user_id, password)
+        request: 로그인 요청 (username, password)
         db: 데이터베이스 세션
 
     Returns:
         AuthResponse: JWT 액세스 토큰
 
     Raises:
-        HTTPException 401: 사용자 ID 또는 비밀번호가 올바르지 않은 경우
+        HTTPException 401: 사용자 이름 또는 비밀번호가 올바르지 않은 경우
     """
     service = AuthService(db)
     access_token = service.login(
-        user_id=request.user_id,
+        username=request.username,
         password=request.password
     )
     return AuthResponse(access_token=access_token)

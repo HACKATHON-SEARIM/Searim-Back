@@ -8,7 +8,7 @@ from app.domain.ocean_management.presentation.dto import (
     BuildRequest,
     BuildResponse
 )
-from app.core.security.jwt import get_current_user_id
+from app.core.security.jwt import get_current_username
 
 router = APIRouter(prefix="/my-ocean", tags=["Ocean Management"])
 
@@ -21,14 +21,14 @@ router = APIRouter(prefix="/my-ocean", tags=["Ocean Management"])
     description="사용자가 소유한 해양 목록과 건물 정보를 조회합니다. JWT 인증이 필요합니다."
 )
 def get_my_oceans(
-    current_user_id: str = Depends(get_current_user_id),
+    current_username: str = Depends(get_current_username),
     db: Session = Depends(get_db)
 ) -> List[MyOceanResponse]:
     """
     내 해양 지역 조회 엔드포인트
 
     Args:
-        current_user_id: 현재 로그인한 사용자 ID (JWT에서 추출)
+        current_username: 현재 로그인한 사용자 이름 (JWT에서 추출)
         db: 데이터베이스 세션
 
     Returns:
@@ -54,7 +54,7 @@ def get_my_oceans(
         ]
     """
     service = OceanManagementService(db)
-    oceans = service.get_my_oceans(current_user_id)
+    oceans = service.get_my_oceans(current_username)
     return oceans
 
 
@@ -67,7 +67,7 @@ def get_my_oceans(
 )
 def build_on_ocean(
     request: BuildRequest,
-    current_user_id: str = Depends(get_current_user_id),
+    current_username: str = Depends(get_current_username),
     db: Session = Depends(get_db)
 ) -> BuildResponse:
     """
@@ -75,7 +75,7 @@ def build_on_ocean(
 
     Args:
         request: 건물 건설 요청 (ocean_id, build_type)
-        current_user_id: 현재 로그인한 사용자 ID (JWT에서 추출)
+        current_username: 현재 로그인한 사용자 이름 (JWT에서 추출)
         db: 데이터베이스 세션
 
     Returns:
@@ -99,7 +99,7 @@ def build_on_ocean(
     """
     service = OceanManagementService(db)
     result = service.build_on_ocean(
-        user_id=current_user_id,
+        user_id=current_username,
         ocean_id=request.ocean_id,
         build_type=request.build_type
     )
