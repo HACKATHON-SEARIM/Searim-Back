@@ -276,7 +276,7 @@ async def generate_building_income():
             # 건물이 없으면 조용히 종료
             return
 
-        now = datetime.utcnow()
+        now = datetime.now()
         total_income_distributed = 0
         initialized_count = 0
         income_count = 0
