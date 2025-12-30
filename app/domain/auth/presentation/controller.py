@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.domain.auth.application.service import AuthService
-from app.domain.auth.presentation.dto import SignupRequest, LoginRequest, AuthResponse
+from app.domain.auth.presentation.dto import SignupRequest, AuthResponse
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -44,17 +45,17 @@ def signup(
     response_model=AuthResponse,
     status_code=status.HTTP_200_OK,
     summary="로그인",
-    description="사용자 인증을 수행하고 JWT 액세스 토큰을 반환합니다."
+    description="사용자 인증을 수행하고 JWT 액세스 토큰을 반환합니다. OAuth2 표준 형식을 사용합니다."
 )
 def login(
-    request: LoginRequest,
+    form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ) -> AuthResponse:
     """
     로그인 엔드포인트
 
     Args:
-        request: 로그인 요청 (username, password)
+        form_data: OAuth2 표준 로그인 폼 (username, password)
         db: 데이터베이스 세션
 
     Returns:
@@ -65,7 +66,7 @@ def login(
     """
     service = AuthService(db)
     access_token = service.login(
-        username=request.username,
-        password=request.password
+        username=form_data.username,
+        password=form_data.password
     )
     return AuthResponse(access_token=access_token)
