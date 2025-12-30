@@ -19,6 +19,7 @@ from app.domain.ocean.domain.entity import Ocean, WaterQuality, WaterQualityStat
 from app.domain.ocean_management.domain.entity import Building, BuildingType
 from app.domain.auth.domain.entity import User
 from app.config import get_settings
+from app.core.ai.ai_client import ai_client
 
 settings = get_settings()
 
@@ -142,7 +143,6 @@ async def fetch_and_update_articles():
                     article_content = description or content or ""
 
                     # AI로 감성 분석
-                    from app.core.ai.ai_client import ai_client
                     sentiment_str = await ai_client.analyze_article_sentiment(
                         ocean_name=matched_ocean.ocean_name,
                         article_title=title,
