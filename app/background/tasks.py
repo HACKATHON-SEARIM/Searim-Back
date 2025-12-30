@@ -282,47 +282,58 @@ async def generate_building_income():
         income_count = 0
 
         print(f"\n🏢 빌딩 수익금 지급 시작 ({len(buildings)}개 건물 확인)")
+        print(f"   현재 시간: {now}")
 
-        for building in buildings:
-            # 마지막 수익금 지급 시간이 없으면 현재 시간으로 초기화
-            if building.last_income_generated_at is None:
-                building.last_income_generated_at = now
-                initialized_count += 1
-                print(f"  🆕 빌딩 ID {building.id} (소유자: {building.user_id}): 수익금 지급 시간 초기화")
-                continue
+        for idx, building in enumerate(buildings, 1):
+            try:
+                print(f"  [{idx}/{len(buildings)}] 빌딩 ID {building.id} 처리 중...")
+                print(f"      소유자: {building.user_id}, 타입: {building.building_type}, 수익률: {building.income_rate}/초")
+                print(f"      마지막 수익 시간: {building.last_income_generated_at}")
 
-            # 마지막 수익금 지급 이후 경과 시간 계산 (초 단위)
-            elapsed_seconds = (now - building.last_income_generated_at).total_seconds()
+                # 마지막 수익금 지급 시간이 없으면 현재 시간으로 초기화
+                if building.last_income_generated_at is None:
+                    building.last_income_generated_at = now
+                    initialized_count += 1
+                    print(f"      ✅ 수익금 지급 시간 초기화 완료")
+                    continue
 
-            if elapsed_seconds >= 1:  # 1초 이상 경과
-                # 수익금 계산
-                income = int(elapsed_seconds) * building.income_rate
+                # 마지막 수익금 지급 이후 경과 시간 계산 (초 단위)
+                elapsed_seconds = (now - building.last_income_generated_at).total_seconds()
+                print(f"      경과 시간: {elapsed_seconds:.2f}초")
 
-                # 소유자에게 크레딧 지급
-                owner = db.query(User).filter(User.user_id == building.user_id).first()
-                if owner:
-                    old_credits = owner.credits
-                    owner.credits += income
-                    total_income_distributed += income
-                    income_count += 1
-                    building_type_name = "가게" if building.building_type == BuildingType.STORE else "빌딩"
-                    print(f"  💰 {building_type_name} ID {building.id} (소유자: {building.user_id}): "
-                          f"{income:,} 크레딧 지급 (경과: {int(elapsed_seconds)}초, "
-                          f"수익률: {building.income_rate}/초, {old_credits:,} → {owner.credits:,})")
+                if elapsed_seconds >= 1:  # 1초 이상 경과
+                    # 수익금 계산
+                    income = int(elapsed_seconds) * building.income_rate
+                    print(f"      계산된 수익금: {income:,} 크레딧")
+
+                    # 소유자에게 크레딧 지급
+                    owner = db.query(User).filter(User.user_id == building.user_id).first()
+                    if owner:
+                        old_credits = owner.credits
+                        owner.credits += income
+                        total_income_distributed += income
+                        income_count += 1
+                        building_type_name = "가게" if building.building_type == BuildingType.STORE else "빌딩"
+                        print(f"      💰 {building_type_name}: {income:,} 크레딧 지급 완료 ({old_credits:,} → {owner.credits:,})")
+                    else:
+                        print(f"      ⚠️  소유자 {building.user_id}를 찾을 수 없습니다.")
+
+                    # 마지막 수익금 지급 시간 업데이트
+                    building.last_income_generated_at = now
                 else:
-                    print(f"  ⚠️  빌딩 ID {building.id}: 소유자 {building.user_id}를 찾을 수 없습니다.")
+                    print(f"      ⏳ 경과 시간 부족 (1초 미만)")
 
-                # 마지막 수익금 지급 시간 업데이트
-                building.last_income_generated_at = now
+            except Exception as e:
+                print(f"      ❌ 빌딩 ID {building.id} 처리 중 오류: {e}")
+                import traceback
+                traceback.print_exc()
 
         db.commit()
-
-        if income_count > 0 or initialized_count > 0:
-            print(f"✅ 수익금 지급 완료: 총 {total_income_distributed:,} 크레딧 지급 "
-                  f"({income_count}개 건물, {initialized_count}개 초기화)\n")
+        print(f"\n✅ DB 커밋 완료")
+        print(f"✅ 수익금 지급 완료: 총 {total_income_distributed:,} 크레딧 지급 ({income_count}개 건물, {initialized_count}개 초기화)\n")
 
     except Exception as e:
-        print(f"❌ 수익금 지급 오류: {e}")
+        print(f"❌ 수익금 지급 전체 오류: {e}")
         import traceback
         traceback.print_exc()
         db.rollback()
