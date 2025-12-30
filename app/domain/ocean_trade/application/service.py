@@ -96,10 +96,9 @@ class OceanTradeService:
         self,
         ocean_id: int,
         seller_username: str,
-        square_meters: int,
-        price: int
+        square_meters: int
     ) -> OceanSale:
-        """해양 판매를 등록합니다."""
+        """해양 판매를 등록합니다. 판매 가격은 DB에 저장된 해양의 현재 가격을 사용합니다."""
         # 해양 존재 여부 확인
         ocean = self.repository.find_ocean_by_id(ocean_id)
         if not ocean:
@@ -118,12 +117,15 @@ class OceanTradeService:
                 detail=f"판매할 소유권이 부족합니다."
             )
 
+        # DB에 저장된 해양의 현재 가격 사용 (1평당 가격)
+        price_per_square = ocean.current_price
+
         # 판매 등록
         sale = self.repository.create_sale(
             ocean_id=ocean_id,
             seller_id=seller_username,
             square_meters=square_meters,
-            price=price
+            price=price_per_square
         )
 
         # 판매 등록 시 소유권 차감

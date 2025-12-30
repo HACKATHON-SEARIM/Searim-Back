@@ -120,11 +120,31 @@ class OceanManagementService:
                 detail=f"해양 ID {ocean_id}에 대한 소유권이 없습니다."
             )
 
-        # 건물 타입에 따른 수익률 설정
+        # 사용자 크레딧 확인
+        user = self.repository.find_user_by_id(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="사용자를 찾을 수 없습니다."
+            )
+
+        # 건물 타입에 따른 비용 및 수익률 설정
         if building_type == BuildingType.STORE:
+            building_cost = settings.STORE_COST
             income_rate = settings.STORE_INCOME_RATE
         else:  # BuildingType.BUILDING
+            building_cost = settings.BUILDING_COST
             income_rate = settings.BUILDING_INCOME_RATE
+
+        # 크레딧 확인
+        if user.credits < building_cost:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"크레딧이 부족합니다. (필요: {building_cost}, 보유: {user.credits})"
+            )
+
+        # 크레딧 차감
+        self.repository.update_user_credits(user_id, user.credits - building_cost)
 
         # 건물 생성
         building = self.repository.create_building(

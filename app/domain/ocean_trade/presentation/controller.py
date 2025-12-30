@@ -103,7 +103,7 @@ def purchase_ocean(
     response_model=SaleResponse,
     status_code=status.HTTP_201_CREATED,
     summary="해양 판매 등록",
-    description="소유한 해양을 판매 등록합니다. 판매 등록 시 크레딧이 소모됩니다."
+    description="소유한 해양을 판매 등록합니다. 판매 가격은 DB에 저장된 해양의 현재 시세로 자동 설정됩니다."
 )
 def register_sale(
     ocean_id: int,
@@ -116,12 +116,12 @@ def register_sale(
 
     Args:
         ocean_id: 해양 ID
-        request: 판매 요청 (면적, 가격)
+        request: 판매 요청 (판매할 평수)
         db: 데이터베이스 세션
         current_username: 현재 로그인한 사용자 이름 (JWT에서 추출)
 
     Returns:
-        SaleResponse: 등록된 판매 정보
+        SaleResponse: 등록된 판매 정보 (가격은 해양의 현재 시세로 자동 설정됨)
 
     Raises:
         HTTPException 404: 해양을 찾을 수 없는 경우
@@ -131,8 +131,7 @@ def register_sale(
     sale = service.register_sale(
         ocean_id=ocean_id,
         seller_username=current_username,
-        square_meters=request.square_meters,
-        price=request.price
+        square_meters=request.square_meters
     )
     return SaleResponse.model_validate(sale)
 

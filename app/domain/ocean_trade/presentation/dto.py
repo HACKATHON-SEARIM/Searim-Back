@@ -20,13 +20,11 @@ class RegisterSaleRequest(BaseModel):
     """해양 판매 등록 요청 DTO"""
 
     square_meters: int = Field(..., description="판매할 평수", gt=0)
-    price: int = Field(..., description="판매 가격 (1평당)", gt=0)
 
     class Config:
         json_schema_extra = {
             "example": {
-                "square_meters": 50,
-                "price": 1500
+                "square_meters": 50
             }
         }
 

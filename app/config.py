@@ -35,9 +35,15 @@ class Settings(BaseSettings):
     PRICE_UPDATE_INTERVAL_MINUTES: int = 10  # 10분마다 시세 업데이트
     OCEAN_DATA_FETCH_INTERVAL_MINUTES: int = 30  # 30분마다 해양 관측소 데이터 수집
 
+    # Building Costs (건물 구매 비용)
+    STORE_COST: int = 100000  # 가게 구매 비용 (10만 크레딧)
+    BUILDING_COST: int = 500000  # 빌딩 구매 비용 (50만 크레딧)
+
     # Building Income Rates (크레딧/초)
-    STORE_INCOME_RATE: int = 10  # 음식점 수익률
-    BUILDING_INCOME_RATE: int = 20  # 빌딩 수익률
+    # 가게: 10초에 10만의 3% = 3,000 크레딧 → 초당 300 크레딧
+    # 빌딩: 10초에 50만의 4% = 20,000 크레딧 → 초당 2,000 크레딧
+    STORE_INCOME_RATE: int = 300  # 음식점 수익률 (크레딧/초)
+    BUILDING_INCOME_RATE: int = 2000  # 빌딩 수익률 (크레딧/초)
 
     # Garbage Collection Reward
     GARBAGE_BASE_REWARD: int = 100  # 기본 쓰레기 수집 보상
